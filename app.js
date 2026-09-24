@@ -1,109 +1,178 @@
-const movementInput = document.getElementById("movement");
-const doorInput = document.getElementById("door");
-const applianceInput = document.getElementById("appliance");
+const movementInput = document.getElementById("movementInput");
+const doorInput = document.getElementById("doorInput");
+const applianceInput = document.getElementById("applianceInput");
+
+const calculateBtn = document.getElementById("calculateBtn");
+const normalBtn = document.getElementById("normalBtn");
+const lowBtn = document.getElementById("lowBtn");
+const resetBtn = document.getElementById("resetBtn");
 
 const riskLevel = document.getElementById("riskLevel");
 const riskScore = document.getElementById("riskScore");
 const heroScore = document.getElementById("heroScore");
-const heroStatus = document.getElementById("heroStatus");
+
 const alertBox = document.getElementById("alertBox");
 const alertTitle = document.getElementById("alertTitle");
 const alertMessage = document.getElementById("alertMessage");
-const lastActivity = document.getElementById("lastActivity");
+
+const totalEvents = document.getElementById("totalEvents");
 
 const movementBar = document.getElementById("movementBar");
 const doorBar = document.getElementById("doorBar");
 const applianceBar = document.getElementById("applianceBar");
 
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
+
+function getNumber(input) {
+  const value = Number(input.value);
+
+  if (Number.isNaN(value) || value < 0) {
+    return 0;
+  }
+
+  return value;
 }
 
-function calculateRisk() {
-  const movement = Math.max(0, Number(movementInput.value) || 0);
-  const door = Math.max(0, Number(doorInput.value) || 0);
-  const appliance = Math.max(0, Number(applianceInput.value) || 0);
+
+function calculateActivity() {
+
+  const movement = getNumber(movementInput);
+  const door = getNumber(doorInput);
+  const appliance = getNumber(applianceInput);
 
   const total = movement + door + appliance;
 
-  // Demo-only heuristic. This is NOT a clinical or validated ML model.
   let score;
   let state;
+  let title;
+  let message;
+  let className;
+
+
+  /*
+    DEMONSTRATION RULE
+
+    Total >= 22  → NORMAL
+    Total 12-21  → LOW ACTIVITY
+    Total < 12   → HIGH RISK
+
+    This is a prototype activity heuristic.
+    It is NOT a medical diagnosis.
+  */
 
   if (total >= 22) {
+
     score = 12;
     state = "NORMAL";
+    title = "Normal activity";
+    message = "Activity is currently within the expected range.";
+    className = "normal";
+
   } else if (total >= 12) {
+
     score = 38;
     state = "LOW ACTIVITY";
+    title = "Low activity";
+    message = "Activity is lower than the normal demonstration range.";
+    className = "low";
+
   } else {
+
     score = 78;
     state = "HIGH RISK";
+    title = "High activity-risk";
+    message = "Very low activity detected. A caregiver check may be appropriate.";
+    className = "alert";
+
   }
 
-  updateDashboard(score, state, movement, door, appliance);
-}
 
-function updateDashboard(score, state, movement, door, appliance) {
-  riskScore.textContent = `${score}%`;
-  heroScore.textContent = `${score}%`;
   riskLevel.textContent = state;
+  riskScore.textContent = score + "%";
+  heroScore.textContent = score + "%";
 
-  const total = movement + door + appliance;
-  movementBar.style.height = `${clamp(movement / 25 * 100, 5, 100)}%`;
-  doorBar.style.height = `${clamp(door / 10 * 100, 5, 100)}%`;
-  applianceBar.style.height = `${clamp(appliance / 12 * 100, 5, 100)}%`;
+  alertTitle.textContent = title;
+  alertMessage.textContent = message;
 
-  lastActivity.textContent = new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  alertBox.className = "alert-box " + className;
 
-  alertBox.className = "alert-box";
+  totalEvents.textContent = total;
 
-  if (state === "NORMAL") {
-    alertBox.classList.add("normal");
-    alertTitle.textContent = "Normal activity";
-    alertMessage.textContent = "Daily activity is within the expected range.";
-    heroStatus.textContent = "SYSTEM NORMAL";
-  } else if (state === "LOW ACTIVITY") {
-    alertBox.classList.add("low");
-    alertTitle.textContent = "Low activity detected";
-    alertMessage.textContent = "Activity is below the expected range. Continue monitoring.";
-    heroStatus.textContent = "LOW ACTIVITY";
-  } else {
-    alertBox.classList.add("high");
-    alertTitle.textContent = "Prototype alert";
-    alertMessage.textContent = "Activity is substantially below the demo baseline. A caregiver check may be appropriate.";
-    heroStatus.textContent = "ALERT";
-  }
+
+  updateBars(movement, door, appliance);
 }
 
-document.getElementById("normalBtn").addEventListener("click", () => {
+
+function updateBars(movement, door, appliance) {
+
+  const maxValue = Math.max(
+    movement,
+    door,
+    appliance,
+    1
+  );
+
+
+  movementBar.style.height =
+    Math.min((movement / maxValue) * 100, 100) + "%";
+
+
+  doorBar.style.height =
+    Math.min((door / maxValue) * 100, 100) + "%";
+
+
+  applianceBar.style.height =
+    Math.min((appliance / maxValue) * 100, 100) + "%";
+}
+
+
+/* NORMAL DEMO */
+
+normalBtn.addEventListener("click", function () {
+
   movementInput.value = 18;
   doorInput.value = 5;
   applianceInput.value = 7;
-  calculateRisk();
+
+  calculateActivity();
+
 });
 
-document.getElementById("lowBtn").addEventListener("click", () => {
-  movementInput.value = 1;
-  doorInput.value = 0;
-  applianceInput.value = 0;
-  calculateRisk();
+
+/* LOW ACTIVITY DEMO */
+
+lowBtn.addEventListener("click", function () {
+
+  movementInput.value = 7;
+  doorInput.value = 2;
+  applianceInput.value = 2;
+
+  calculateActivity();
+
 });
 
-document.getElementById("calculateBtn").addEventListener("click", calculateRisk);
 
-document.getElementById("resetBtn").addEventListener("click", () => {
+/* CALCULATE */
+
+calculateBtn.addEventListener("click", function () {
+
+  calculateActivity();
+
+});
+
+
+/* RESET */
+
+resetBtn.addEventListener("click", function () {
+
   movementInput.value = 18;
   doorInput.value = 5;
   applianceInput.value = 7;
-  calculateRisk();
+
+  calculateActivity();
+
 });
 
-[movementInput, doorInput, applianceInput].forEach(input => {
-  input.addEventListener("input", calculateRisk);
-});
 
-calculateRisk();
+/* INITIAL STATE */
+
+calculateActivity();
