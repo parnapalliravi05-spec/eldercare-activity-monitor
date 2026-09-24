@@ -3,907 +3,655 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>PRJ_62 | ElderCare Activity Monitor</title>
-
-  <meta
-    name="description"
-    content="PRJ_62 ElderCare Activity Monitor using automatic video activity detection and passive IoT monitoring."
-  >
-
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 
-  <!-- NAVIGATION -->
-  <header class="navbar">
-    <div class="nav-inner">
+<header class="navbar">
+  <div class="nav-inner">
+    <a class="brand" href="#home">PRJ_62</a>
 
-      <a class="brand" href="#home">PRJ_62</a>
+    <nav>
+      <a href="#overview">Overview</a>
+      <a href="#monitor">Monitor</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#hardware">Hardware</a>
+    </nav>
+  </div>
+</header>
 
-      <nav>
-        <a href="#overview">Overview</a>
-        <a href="#monitor">Monitor</a>
-        <a href="#architecture">Architecture</a>
-        <a href="#hardware">Hardware</a>
-      </nav>
 
+<main>
+
+<!-- HOME -->
+<section id="home" class="hero">
+
+  <div class="hero-content">
+
+    <p class="eyebrow">B.Tech AI & Data Science • Project Review</p>
+
+    <h1>
+      ElderCare<br>
+      <span>Activity Monitor</span>
+    </h1>
+
+    <p class="hero-text">
+      A passive monitoring system designed to observe daily activity
+      patterns and identify unusual inactivity for caregiver attention.
+    </p>
+
+    <div class="hero-buttons">
+      <a class="btn primary" href="#monitor">Open Monitor</a>
+      <a class="btn secondary" href="#architecture">View Architecture</a>
     </div>
-  </header>
 
+  </div>
 
-  <main>
 
-    <!-- HERO -->
-    <section id="home" class="hero">
+  <div class="hero-card">
 
-      <div class="hero-content">
+    <div class="status-row">
+      <span class="status-dot"></span>
+      <span>MONITORING READY</span>
+    </div>
 
-        <p class="eyebrow">
-          B.Tech AI & Data Science • Project Review
-        </p>
+    <div class="hero-score" id="heroScore">12%</div>
 
-        <h1>
-          ElderCare<br>
-          <span>Activity Monitor</span>
-        </h1>
+    <p>Current activity-risk score</p>
 
-        <p class="hero-text">
-          An intelligent monitoring system designed to automatically
-          recognize activity from video and passive IoT sensors, count
-          activity patterns and highlight unusual inactivity for caregiver
-          attention.
-        </p>
+    <div class="mini-bars">
+      <span style="height:45%"></span>
+      <span style="height:72%"></span>
+      <span style="height:58%"></span>
+      <span style="height:84%"></span>
+      <span style="height:62%"></span>
+      <span style="height:78%"></span>
+    </div>
 
-        <div class="hero-buttons">
+  </div>
 
-          <a class="btn primary" href="#monitor">
-            Start Monitoring
-          </a>
+</section>
 
-          <a class="btn secondary" href="#architecture">
-            View Architecture
-          </a>
 
-        </div>
+<!-- OVERVIEW -->
+<section id="overview" class="section">
 
-      </div>
+  <div class="section-heading">
 
+    <p class="eyebrow">01 • PROJECT OVERVIEW</p>
 
-      <div class="hero-card">
+    <h2>Passive activity monitoring</h2>
 
-        <div class="status-row">
-          <span class="status-dot"></span>
-          <span id="heroStatus">SYSTEM READY</span>
-        </div>
+    <p>
+      The system uses activity information such as movement,
+      door events and appliance usage to estimate an activity-risk
+      level for an elderly person living alone.
+    </p>
 
-        <div class="hero-score" id="heroScore">
-          12%
-        </div>
+  </div>
 
-        <p>
-          Current activity-risk score
-        </p>
 
-        <div class="mini-bars">
+  <div class="feature-grid">
 
-          <span style="height:45%"></span>
-          <span style="height:72%"></span>
-          <span style="height:58%"></span>
-          <span style="height:84%"></span>
-          <span style="height:62%"></span>
-          <span style="height:78%"></span>
+    <article class="feature-card">
+      <div class="icon">01</div>
 
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- OVERVIEW -->
-    <section id="overview" class="section">
-
-      <div class="section-heading">
-
-        <p class="eyebrow">
-          01 • PROJECT OVERVIEW
-        </p>
-
-        <h2>
-          Automatic activity monitoring
-        </h2>
-
-        <p>
-          The proposed system uses computer vision and passive IoT
-          monitoring to observe daily activity without requiring the
-          elderly person to manually enter information.
-        </p>
-
-      </div>
-
-
-      <div class="feature-grid">
-
-        <article class="feature-card">
-
-          <div class="icon">
-            01
-          </div>
-
-          <h3>
-            Video detection
-          </h3>
-
-          <p>
-            A camera video can be analysed automatically to detect
-            the presence and movement of a person.
-          </p>
-
-        </article>
-
-
-        <article class="feature-card">
-
-          <div class="icon">
-            02
-          </div>
-
-          <h3>
-            Activity counting
-          </h3>
-
-          <p>
-            Computer vision processing can convert detected movement
-            into measurable activity events and activity duration.
-          </p>
-
-        </article>
-
-
-        <article class="feature-card">
-
-          <div class="icon">
-            03
-          </div>
-
-          <h3>
-            Risk awareness
-          </h3>
-
-          <p>
-            Activity measurements can be compared with an expected
-            pattern to highlight unusual inactivity for caregiver
-            attention.
-          </p>
-
-        </article>
-
-      </div>
-
-    </section>
-
-
-    <!-- MONITOR -->
-    <section id="monitor" class="section dark-section">
-
-      <div class="section-heading">
-
-        <p class="eyebrow">
-          02 • ACTIVITY MONITOR
-        </p>
-
-        <h2>
-          Automatic monitoring dashboard
-        </h2>
-
-        <p>
-          The final system will receive activity information from
-          video analysis and connected sensors instead of requiring
-          manual activity entry.
-        </p>
-
-      </div>
-
-
-      <div class="dashboard">
-
-        <div class="dashboard-top">
-
-          <div>
-
-            <p class="small-label">
-              CURRENT STATE
-            </p>
-
-            <h3 id="riskLevel">
-              NORMAL
-            </h3>
-
-          </div>
-
-
-          <div class="score-box">
-
-            <span>
-              Risk score
-            </span>
-
-            <strong id="riskScore">
-              12%
-            </strong>
-
-          </div>
-
-        </div>
-
-
-        <div id="alertBox" class="alert-box normal">
-
-          <strong id="alertTitle">
-            Normal activity
-          </strong>
-
-          <span id="alertMessage">
-            Activity is currently within the expected range.
-          </span>
-
-        </div>
-
-
-        <!-- VIDEO AREA -->
-
-        <div class="video-monitor">
-
-          <div class="video-header">
-
-            <span>
-              VIDEO ACTIVITY ANALYSIS
-            </span>
-
-            <span class="video-status">
-              READY
-            </span>
-
-          </div>
-
-
-          <div class="video-placeholder">
-
-            <div class="camera-icon">
-              ◉
-            </div>
-
-            <h3>
-              Automatic Video Monitoring
-            </h3>
-
-            <p>
-              Video input will be analysed by the computer vision
-              module to detect and count activity automatically.
-            </p>
-
-            <button
-              class="btn primary"
-              id="videoButton"
-              type="button"
-            >
-              Select Video
-            </button>
-
-            <input
-              id="videoInput"
-              type="file"
-              accept="video/*"
-              hidden
-            >
-
-          </div>
-
-
-          <div class="video-results">
-
-            <div>
-              <span>
-                Person detected
-              </span>
-
-              <strong id="personDetected">
-                Waiting
-              </strong>
-            </div>
-
-
-            <div>
-              <span>
-                Activity count
-              </span>
-
-              <strong id="activityCount">
-                0
-              </strong>
-            </div>
-
-
-            <div>
-              <span>
-                Active time
-              </span>
-
-              <strong id="activeTime">
-                0 min
-              </strong>
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- AUTOMATIC ACTIVITY -->
-
-        <div class="dashboard-stats">
-
-          <div>
-
-            <span>
-              Detection mode
-            </span>
-
-            <strong>
-              Computer Vision
-            </strong>
-
-          </div>
-
-
-          <div>
-
-            <span>
-              Activity source
-            </span>
-
-            <strong>
-              Video
-            </strong>
-
-          </div>
-
-
-          <div>
-
-            <span>
-              Monitoring
-            </span>
-
-            <strong>
-              Automatic
-            </strong>
-
-          </div>
-
-        </div>
-
-
-        <div class="activity-chart">
-
-          <div class="chart-title">
-
-            <span>
-              Activity signals
-            </span>
-
-            <span>
-              Automatic analysis
-            </span>
-
-          </div>
-
-
-          <div class="bars">
-
-            <div class="bar-wrap">
-
-              <div
-                class="bar"
-                id="movementBar"
-                style="height:60%"
-              ></div>
-
-              <span>
-                Movement
-              </span>
-
-            </div>
-
-
-            <div class="bar-wrap">
-
-              <div
-                class="bar"
-                id="doorBar"
-                style="height:30%"
-              ></div>
-
-              <span>
-                Presence
-              </span>
-
-            </div>
-
-
-            <div class="bar-wrap">
-
-              <div
-                class="bar"
-                id="applianceBar"
-                style="height:20%"
-              ></div>
-
-              <span>
-                Activity
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- ARCHITECTURE -->
-    <section id="architecture" class="section">
-
-      <div class="section-heading">
-
-        <p class="eyebrow">
-          03 • SYSTEM ARCHITECTURE
-        </p>
-
-        <h2>
-          Video → AI → Activity → Risk
-        </h2>
-
-        <p>
-          The main software workflow automatically analyses video,
-          extracts activity information and displays the resulting
-          activity-risk state.
-        </p>
-
-      </div>
-
-
-      <div class="architecture">
-
-        <div class="arch-node">
-          Camera / Video
-          <br>
-          <small>
-            Video input
-          </small>
-        </div>
-
-
-        <div class="arrow">
-          →
-        </div>
-
-
-        <div class="arch-node highlight">
-          Computer Vision
-          <br>
-          <small>
-            Person detection
-          </small>
-        </div>
-
-
-        <div class="arrow">
-          →
-        </div>
-
-
-        <div class="arch-node highlight">
-          Activity Tracking
-          <br>
-          <small>
-            Movement counting
-          </small>
-        </div>
-
-
-        <div class="arrow">
-          →
-        </div>
-
-
-        <div class="arch-node highlight">
-          Python / ML
-          <br>
-          <small>
-            Risk analysis
-          </small>
-        </div>
-
-
-        <div class="arrow">
-          →
-        </div>
-
-
-        <div class="arch-node">
-          Dashboard
-          <br>
-          <small>
-            Activity display
-          </small>
-        </div>
-
-
-        <div class="arrow">
-          →
-        </div>
-
-
-        <div class="arch-node alert-node">
-          Caregiver Alert
-          <br>
-          <small>
-            Action
-          </small>
-        </div>
-
-      </div>
-
-
-      <div class="progress-card">
-
-        <div>
-
-          <span class="small-label">
-            CURRENT DEVELOPMENT
-          </span>
-
-          <h3>
-            Automatic video analysis
-          </h3>
-
-        </div>
-
-
-        <div class="progress-track">
-
-          <div class="progress-fill"></div>
-
-        </div>
-
-
-        <span class="progress-number">
-          50%
-        </span>
-
-      </div>
-
-    </section>
-
-
-    <!-- HARDWARE -->
-    <section id="hardware" class="section light-section">
-
-      <div class="section-heading">
-
-        <p class="eyebrow">
-          04 • HARDWARE PLAN
-        </p>
-
-        <h2>
-          Planned physical integration
-        </h2>
-
-        <p>
-          Hardware sensors can later supplement video-based activity
-          recognition for a more complete passive monitoring system.
-        </p>
-
-      </div>
-
-
-      <div class="hardware-grid">
-
-        <article class="hardware-card">
-
-          <span class="hardware-number">
-            01
-          </span>
-
-          <h3>
-            Camera
-          </h3>
-
-          <p>
-            Provides video input for automatic activity recognition.
-          </p>
-
-        </article>
-
-
-        <article class="hardware-card">
-
-          <span class="hardware-number">
-            02
-          </span>
-
-          <h3>
-            ESP32 DevKit
-          </h3>
-
-          <p>
-            Collects additional sensor information and transfers
-            activity events through Wi-Fi.
-          </p>
-
-        </article>
-
-
-        <article class="hardware-card">
-
-          <span class="hardware-number">
-            03
-          </span>
-
-          <h3>
-            PIR Sensor
-          </h3>
-
-          <p>
-            Provides an additional motion signal for passive
-            activity monitoring.
-          </p>
-
-        </article>
-
-
-        <article class="hardware-card">
-
-          <span class="hardware-number">
-            04
-          </span>
-
-          <h3>
-            Door Sensor
-          </h3>
-
-          <p>
-            Detects door opening and closing activity.
-          </p>
-
-        </article>
-
-      </div>
-
-    </section>
-
-
-    <!-- ACTIVITY HISTORY -->
-    <section class="section">
-
-      <div class="section-heading">
-
-        <p class="eyebrow">
-          05 • ACTIVITY HISTORY
-        </p>
-
-        <h2>
-          Automatic activity record
-        </h2>
-
-        <p>
-          Activity records will be generated automatically after
-          video processing.
-        </p>
-
-      </div>
-
-
-      <div class="table-wrap">
-
-        <table>
-
-          <thead>
-
-            <tr>
-
-              <th>
-                Time
-              </th>
-
-              <th>
-                Activity
-              </th>
-
-              <th>
-                Active Time
-              </th>
-
-              <th>
-                Detection
-              </th>
-
-              <th>
-                State
-              </th>
-
-            </tr>
-
-          </thead>
-
-
-          <tbody>
-
-            <tr>
-
-              <td>
-                08:00
-              </td>
-
-              <td>
-                Movement detected
-              </td>
-
-              <td>
-                18 min
-              </td>
-
-              <td>
-                Video AI
-              </td>
-
-              <td>
-                <span class="pill normal-pill">
-                  Normal
-                </span>
-              </td>
-
-            </tr>
-
-
-            <tr>
-
-              <td>
-                10:00
-              </td>
-
-              <td>
-                Movement detected
-              </td>
-
-              <td>
-                12 min
-              </td>
-
-              <td>
-                Video AI
-              </td>
-
-              <td>
-                <span class="pill normal-pill">
-                  Normal
-                </span>
-              </td>
-
-            </tr>
-
-
-            <tr>
-
-              <td>
-                12:00
-              </td>
-
-              <td>
-                Limited movement
-              </td>
-
-              <td>
-                5 min
-              </td>
-
-              <td>
-                Video AI
-              </td>
-
-              <td>
-                <span class="pill low-pill">
-                  Low
-                </span>
-              </td>
-
-            </tr>
-
-
-            <tr>
-
-              <td>
-                14:00
-              </td>
-
-              <td>
-                No movement detected
-              </td>
-
-              <td>
-                1 min
-              </td>
-
-              <td>
-                Video AI
-              </td>
-
-              <td>
-                <span class="pill alert-pill">
-                  Alert
-                </span>
-              </td>
-
-            </tr>
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </section>
-
-
-    <!-- FINAL CTA -->
-    <section class="cta">
-
-      <p class="eyebrow">
-        NEXT PHASE
-      </p>
-
-      <h2>
-        Connect automatic video analysis to the backend.
-      </h2>
+      <h3>Activity collection</h3>
 
       <p>
-        Camera → Computer Vision → Activity Tracking → FastAPI →
-        Python/ML → Dashboard → Caregiver notification.
+        Movement, door and appliance events can be collected
+        through passive monitoring.
       </p>
+    </article>
 
-      <a
+
+    <article class="feature-card">
+      <div class="icon">02</div>
+
+      <h3>Activity analysis</h3>
+
+      <p>
+        The collected activity information is processed to
+        identify changes from normal activity.
+      </p>
+    </article>
+
+
+    <article class="feature-card">
+      <div class="icon">03</div>
+
+      <h3>Caregiver awareness</h3>
+
+      <p>
+        A higher-risk activity pattern can be highlighted so
+        that a caregiver can check on the person.
+      </p>
+    </article>
+
+  </div>
+
+</section>
+
+
+<!-- MONITOR -->
+<section id="monitor" class="section dark-section">
+
+  <div class="section-heading">
+
+    <p class="eyebrow">02 • ACTIVITY MONITOR</p>
+
+    <h2>Manual activity demonstration</h2>
+
+    <p>
+      Enter the activity events below to demonstrate how the
+      activity-risk calculation works.
+    </p>
+
+  </div>
+
+
+  <div class="dashboard">
+
+    <div class="dashboard-top">
+
+      <div>
+        <p class="small-label">CURRENT STATE</p>
+
+        <h3 id="riskLevel">NORMAL</h3>
+      </div>
+
+
+      <div class="score-box">
+
+        <span>Risk score</span>
+
+        <strong id="riskScore">12%</strong>
+
+      </div>
+
+    </div>
+
+
+    <div id="alertBox" class="alert-box normal">
+
+      <strong id="alertTitle">
+        Normal activity
+      </strong>
+
+      <span id="alertMessage">
+        Activity is currently within the expected range.
+      </span>
+
+    </div>
+
+
+    <!-- MANUAL INPUTS -->
+    <div class="input-grid">
+
+      <div class="input-card">
+
+        <label for="movementInput">
+          Movement events
+        </label>
+
+        <input
+          id="movementInput"
+          type="number"
+          min="0"
+          value="18"
+        >
+
+        <small>
+          Number of detected movement events
+        </small>
+
+      </div>
+
+
+      <div class="input-card">
+
+        <label for="doorInput">
+          Door events
+        </label>
+
+        <input
+          id="doorInput"
+          type="number"
+          min="0"
+          value="5"
+        >
+
+        <small>
+          Door opening / closing events
+        </small>
+
+      </div>
+
+
+      <div class="input-card">
+
+        <label for="applianceInput">
+          Appliance events
+        </label>
+
+        <input
+          id="applianceInput"
+          type="number"
+          min="0"
+          value="7"
+        >
+
+        <small>
+          Appliance usage events
+        </small>
+
+      </div>
+
+    </div>
+
+
+    <!-- BUTTONS -->
+    <div class="button-row">
+
+      <button
         class="btn primary"
-        href="#monitor"
+        id="calculateBtn"
+        type="button"
       >
-        Start Monitoring
-      </a>
-
-    </section>
-
-  </main>
+        Calculate
+      </button>
 
 
-  <!-- FOOTER -->
-  <footer>
-
-    <strong>
-      PRJ_62 • ElderCare Activity Monitor
-    </strong>
-
-    <span>
-      Automatic Video Analysis • Passive IoT • Python/ML • FastAPI
-    </span>
-
-  </footer>
+      <button
+        class="btn secondary"
+        id="normalBtn"
+        type="button"
+      >
+        Simulate Normal
+      </button>
 
 
-  <script src="app.js"></script>
+      <button
+        class="btn secondary"
+        id="lowBtn"
+        type="button"
+      >
+        Simulate Low Activity
+      </button>
+
+
+      <button
+        class="btn secondary"
+        id="resetBtn"
+        type="button"
+      >
+        Reset
+      </button>
+
+    </div>
+
+
+    <!-- TOTAL ACTIVITY -->
+    <div class="dashboard-stats">
+
+      <div>
+        <span>Total activity events</span>
+        <strong id="totalEvents">30</strong>
+      </div>
+
+
+      <div>
+        <span>Activity source</span>
+        <strong>Manual Demo</strong>
+      </div>
+
+
+      <div>
+        <span>Monitoring type</span>
+        <strong>Passive IoT</strong>
+      </div>
+
+    </div>
+
+
+    <!-- ACTIVITY BARS -->
+    <div class="activity-chart">
+
+      <div class="chart-title">
+
+        <span>Activity signals</span>
+
+        <span>Current input</span>
+
+      </div>
+
+
+      <div class="bars">
+
+        <div class="bar-wrap">
+
+          <div
+            class="bar"
+            id="movementBar"
+            style="height:60%"
+          ></div>
+
+          <span>Movement</span>
+
+        </div>
+
+
+        <div class="bar-wrap">
+
+          <div
+            class="bar"
+            id="doorBar"
+            style="height:35%"
+          ></div>
+
+          <span>Door</span>
+
+        </div>
+
+
+        <div class="bar-wrap">
+
+          <div
+            class="bar"
+            id="applianceBar"
+            style="height:45%"
+          ></div>
+
+          <span>Appliance</span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- ARCHITECTURE -->
+<section id="architecture" class="section">
+
+  <div class="section-heading">
+
+    <p class="eyebrow">03 • SYSTEM ARCHITECTURE</p>
+
+    <h2>Sensor → Analysis → Alert</h2>
+
+    <p>
+      The planned system connects passive sensors with a Python
+      backend and activity-risk analysis.
+    </p>
+
+  </div>
+
+
+  <div class="architecture">
+
+    <div class="arch-node">
+      PIR Sensor
+      <br>
+      <small>Movement</small>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="arch-node">
+      Door Sensor
+      <br>
+      <small>Door events</small>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="arch-node">
+      Appliance
+      <br>
+      <small>Usage</small>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="arch-node highlight">
+      ESP32
+      <br>
+      <small>Data collection</small>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="arch-node highlight">
+      FastAPI
+      <br>
+      <small>Backend</small>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="arch-node highlight">
+      Python / ML
+      <br>
+      <small>Analysis</small>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="arch-node alert-node">
+      Caregiver
+      <br>
+      <small>Alert</small>
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- HARDWARE -->
+<section id="hardware" class="section light-section">
+
+  <div class="section-heading">
+
+    <p class="eyebrow">04 • HARDWARE PLAN</p>
+
+    <h2>Planned physical components</h2>
+
+    <p>
+      These components can be used for the physical prototype.
+    </p>
+
+  </div>
+
+
+  <div class="hardware-grid">
+
+    <article class="hardware-card">
+      <span class="hardware-number">01</span>
+      <h3>ESP32 DevKit V1</h3>
+      <p>
+        Microcontroller used to collect sensor data and transmit
+        activity information.
+      </p>
+    </article>
+
+
+    <article class="hardware-card">
+      <span class="hardware-number">02</span>
+      <h3>HC-SR501 PIR</h3>
+      <p>
+        Detects movement inside the monitored environment.
+      </p>
+    </article>
+
+
+    <article class="hardware-card">
+      <span class="hardware-number">03</span>
+      <h3>MC-38 Reed Switch</h3>
+      <p>
+        Detects door opening and closing events.
+      </p>
+    </article>
+
+
+    <article class="hardware-card">
+      <span class="hardware-number">04</span>
+      <h3>LED Indicator</h3>
+      <p>
+        Provides a simple local indication for system status.
+      </p>
+    </article>
+
+  </div>
+
+</section>
+
+
+<!-- HISTORY -->
+<section class="section">
+
+  <div class="section-heading">
+
+    <p class="eyebrow">05 • ACTIVITY HISTORY</p>
+
+    <h2>Example activity record</h2>
+
+    <p>
+      Sample records showing how activity information can be
+      presented to a caregiver.
+    </p>
+
+  </div>
+
+
+  <div class="table-wrap">
+
+    <table>
+
+      <thead>
+
+        <tr>
+          <th>Time</th>
+          <th>Movement</th>
+          <th>Door</th>
+          <th>Appliance</th>
+          <th>State</th>
+        </tr>
+
+      </thead>
+
+
+      <tbody>
+
+        <tr>
+          <td>08:00</td>
+          <td>18</td>
+          <td>5</td>
+          <td>7</td>
+
+          <td>
+            <span class="pill normal-pill">
+              Normal
+            </span>
+          </td>
+        </tr>
+
+
+        <tr>
+          <td>10:00</td>
+          <td>15</td>
+          <td>4</td>
+          <td>5</td>
+
+          <td>
+            <span class="pill normal-pill">
+              Normal
+            </span>
+          </td>
+        </tr>
+
+
+        <tr>
+          <td>12:00</td>
+          <td>7</td>
+          <td>2</td>
+          <td>2</td>
+
+          <td>
+            <span class="pill low-pill">
+              Low Activity
+            </span>
+          </td>
+        </tr>
+
+
+        <tr>
+          <td>14:00</td>
+          <td>1</td>
+          <td>0</td>
+          <td>0</td>
+
+          <td>
+            <span class="pill alert-pill">
+              High Risk
+            </span>
+          </td>
+        </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</section>
+
+
+<!-- FINAL -->
+<section class="cta">
+
+  <p class="eyebrow">PROJECT DEVELOPMENT</p>
+
+  <h2>
+    Passive monitoring for activity-risk awareness.
+  </h2>
+
+  <p>
+    The current website demonstrates the activity calculation.
+    Hardware and machine-learning integration can be connected
+    in the next development phase.
+  </p>
+
+  <a class="btn primary" href="#monitor">
+    Open Activity Monitor
+  </a>
+
+</section>
+
+</main>
+
+
+<footer>
+
+  <strong>
+    PRJ_62 • ElderCare Activity Monitor
+  </strong>
+
+  <span>
+    Passive IoT • Python/ML • FastAPI
+  </span>
+
+</footer>
+
+
+<script src="app.js"></script>
 
 </body>
 </html>
