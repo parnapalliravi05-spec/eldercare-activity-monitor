@@ -2,251 +2,285 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0b1220">
-  <title>ElderCare | Live Monitoring</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElderCare | Activity Monitoring Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-  <aside class="sidebar">
+<div class="dashboard">
 
-    <div class="brand">
-      <b class="logo">E</b>
-      <div>
-        <strong>eldercare</strong>
-        <small>PASSIVE CARE SYSTEM</small>
-      </div>
-    </div>
-
-    <p class="nav-label">WORKSPACE</p>
-
-    <a class="nav active" href="#overview">▦ &nbsp; Live overview</a>
-    <a class="nav" href="#analytics">⌁ &nbsp; Activity analytics</a>
-    <a class="nav" href="#devices">◉ &nbsp; Sensor status</a>
-
-    <div class="privacy">
-      <b>✓ &nbsp; Privacy-first monitoring</b>
-      <small>No camera or audio recording</small>
-    </div>
-
-  </aside>
-
-  <main id="overview">
-
-    <header>
-      <div>
-        <small class="crumb">HOME / LIVE MONITORING</small>
-        <h1>Live monitoring</h1>
-        <p class="muted">A real-time view of daily activity signals and system health.</p>
-      </div>
-
-      <div class="head-right">
-        <span id="connection" class="pill">
-          <i></i> CONNECTING
-        </span>
-
-        <small>Last update <b id="updated">—</b></small>
-      </div>
-    </header>
-
-    <section class="hero">
-
-      <small>ELDERCARE ACTIVITY MONITOR</small>
-
-      <h2>Small signals. <em>Meaningful care.</em></h2>
-
-      <p>
-        Sensor readings refresh automatically while this page stays open.
-      </p>
-
-      <div class="hero-art">
-        ⌁
-        <small>LIVE<br>STREAM</small>
-      </div>
-
-    </section>
-
-    <div class="section-title">
-
-      <div>
-        <small>AT A GLANCE</small>
-        <h2>Activity snapshot</h2>
-      </div>
-
-      <span class="auto">
-        <i></i> Auto-refresh every 2 seconds
-      </span>
-
-    </div>
-
-    <section class="metrics">
-
-      <article>
-        <label>Movement events</label>
-        <b id="movement" class="number">—</b>
-        <small id="movementDelta">Waiting for sensor data</small>
-      </article>
-
-      <article>
-        <label>Door events</label>
-        <b id="door" class="number">—</b>
-        <small>Door sensor channel</small>
-      </article>
-
-      <article>
-        <label>Appliance events</label>
-        <b id="appliance" class="number">—</b>
-        <small>Appliance sensor channel</small>
-      </article>
-
-      <article class="risk">
-
-        <label>Activity risk indicator</label>
-
-        <div class="risk-line">
-          <b id="risk" class="number">—%</b>
-          <span id="riskStatus">WAITING</span>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">E</div>
+            <div>
+                <h2>ElderCare</h2>
+                <p>Activity Monitor</p>
+            </div>
         </div>
 
-        <div class="track">
-          <i id="riskFill"></i>
+        <nav class="navigation">
+            <a href="#overview" class="nav-link active">▦ Overview</a>
+            <a href="#analytics" class="nav-link">▥ Analytics</a>
+            <a href="#devices" class="nav-link">⌁ Devices</a>
+            <a href="#manual" class="nav-link">▤ Manual Calculator</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p>ELDERCARE PROJECT</p>
+            <small>IoT Activity Monitoring</small>
         </div>
+    </aside>
 
-        <small id="riskNote">Awaiting backend analysis</small>
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
 
-      </article>
+        <!-- HEADER -->
+        <header class="topbar">
+            <div>
+                <h1>Activity Monitoring Dashboard</h1>
+                <p>Monitor daily activity and inactivity indicators</p>
+            </div>
 
-    </section>
+            <div class="connection-area">
+                <span id="connection" class="status-badge">Connecting...</span>
+                <small id="updated">Waiting for data...</small>
+            </div>
+        </header>
 
-    <section class="columns" id="analytics">
+        <!-- OVERVIEW -->
+        <section id="overview">
 
-      <article class="panel">
+            <div class="welcome-banner">
+                <div>
+                    <p class="eyebrow">ELDERCARE MONITORING SYSTEM</p>
+                    <h2>Welcome to your monitoring dashboard</h2>
+                    <p>Track activity readings received from your connected IoT device.</p>
+                </div>
+                <div class="welcome-icon">🏠</div>
+            </div>
 
-        <div class="panel-head">
+            <div class="section-heading">
+                <div>
+                    <h2>Live Activity Overview</h2>
+                    <p>Latest readings from your ESP32 monitoring system</p>
+                </div>
+                <span class="live-label">● LIVE MONITORING</span>
+            </div>
 
-          <div>
-            <small>LIVE TELEMETRY</small>
-            <h2>Movement activity trend</h2>
-            <p>Cumulative movement events received from the ESP32.</p>
-          </div>
+            <!-- METRIC CARDS -->
+            <div class="metrics-grid">
 
-          <span class="live">● LIVE</span>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span>Movement Events</span>
+                        <span class="metric-icon">🚶</span>
+                    </div>
+                    <h2 id="movement">0</h2>
+                    <p>Detected movement events</p>
+                    <small id="movementDelta">Waiting for readings</small>
+                </div>
 
-        </div>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span>Door Events</span>
+                        <span class="metric-icon">🚪</span>
+                    </div>
+                    <h2 id="door">0</h2>
+                    <p>Door activity readings</p>
+                </div>
 
-        <div class="chart">
-          <canvas id="activityChart"></canvas>
-        </div>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span>Appliance Events</span>
+                        <span class="metric-icon">💡</span>
+                    </div>
+                    <h2 id="appliance">0</h2>
+                    <p>Appliance activity readings</p>
+                </div>
 
-        <small class="chart-foot">
-          Latest 30 readings in this browser session
-        </small>
+                <div class="metric-card">
+                    <div class="metric-top">
+                        <span>Activity Risk Indicator</span>
+                        <span class="metric-icon">📊</span>
+                    </div>
+                    <h2 id="risk">--</h2>
+                    <p id="riskStatus">Waiting for activity data</p>
+                    <div class="risk-track">
+                        <div id="riskFill" class="risk-fill"></div>
+                    </div>
+                    <small id="riskNote">Prototype activity indicator only</small>
+                </div>
 
-      </article>
+            </div>
+        </section>
 
-      <article class="panel" id="devices">
+        <!-- ANALYTICS -->
+        <section id="analytics" class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Activity Analytics</h2>
+                    <p>Live movement activity trend</p>
+                </div>
+            </div>
 
-        <div class="panel-head">
-          <div>
-            <small>DEVICE HEALTH</small>
-            <h2>Sensor status</h2>
-            <p>Cloud-reported sensor channels.</p>
-          </div>
-        </div>
+            <div class="chart-card">
+                <div class="chart-heading">
+                    <h3>Movement Activity</h3>
+                    <span>Recent readings</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </section>
 
-        <div class="device">
+        <!-- DEVICES -->
+        <section id="devices" class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Connected Devices</h2>
+                    <p>Hardware and backend connection status</p>
+                </div>
+            </div>
 
-          <span class="symbol">◉</span>
+            <div class="device-grid">
 
-          <div>
-            <b>PIR motion sensor</b>
-            <small>GPIO 25 · Movement detection</small>
-          </div>
+                <div class="device-card">
+                    <div class="device-icon">📡</div>
+                    <div>
+                        <h3>PIR Motion Sensor</h3>
+                        <p>ESP32 GPIO 25</p>
+                        <span id="pir" class="device-status">Waiting for data</span>
+                    </div>
+                </div>
 
-          <span id="pir" class="state good">ONLINE</span>
+                <div class="device-card">
+                    <div class="device-icon">☁️</div>
+                    <div>
+                        <h3>Cloud Backend</h3>
+                        <p>Render API Connection</p>
+                        <span class="device-status">
+                            <span id="backendDot" class="status-dot"></span>
+                            <span id="backendText">Connecting...</span>
+                        </span>
+                    </div>
+                </div>
 
-        </div>
+            </div>
+        </section>
 
-        <div class="device">
+        <!-- MANUAL CALCULATOR -->
+        <section id="manual" class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Manual Activity Calculator</h2>
+                    <p>Enter activity observations to calculate a separate prototype indicator.</p>
+                </div>
+                <span class="manual-label">MANUAL INPUT</span>
+            </div>
 
-          <span class="symbol blue">↔</span>
+            <div class="calculator-card">
 
-          <div>
-            <b>Door sensor</b>
-            <small>Not yet connected</small>
-          </div>
+                <div class="calculator-intro">
+                    <h3>Enter Activity Counts</h3>
+                    <p>
+                        Enter the number of events observed during your chosen
+                        monitoring period.
+                    </p>
+                </div>
 
-          <span class="state pending">PENDING</span>
+                <div class="calculator-grid">
 
-        </div>
+                    <div class="calculator-input">
+                        <label for="manualMovement">Movement Events</label>
+                        <input
+                            type="number"
+                            id="manualMovement"
+                            min="0"
+                            value="0"
+                            placeholder="Enter movement count"
+                        >
+                    </div>
 
-        <div class="device">
+                    <div class="calculator-input">
+                        <label for="manualDoor">Door Events</label>
+                        <input
+                            type="number"
+                            id="manualDoor"
+                            min="0"
+                            value="0"
+                            placeholder="Enter door count"
+                        >
+                    </div>
 
-          <span class="symbol amber">⌁</span>
+                    <div class="calculator-input">
+                        <label for="manualAppliance">Appliance Events</label>
+                        <input
+                            type="number"
+                            id="manualAppliance"
+                            min="0"
+                            value="0"
+                            placeholder="Enter appliance count"
+                        >
+                    </div>
 
-          <div>
-            <b>Appliance monitoring</b>
-            <small>Not yet connected</small>
-          </div>
+                </div>
 
-          <span class="state pending">PENDING</span>
+                <div class="calculator-actions">
+                    <button type="button" id="calculateManual">
+                        Calculate Activity
+                    </button>
 
-        </div>
+                    <button type="button" id="resetManual" class="secondary-button">
+                        Reset
+                    </button>
+                </div>
 
-        <div class="backend">
+                <div id="manualResult" class="manual-result" aria-live="polite">
+                    <h3>Calculation Result</h3>
+                    <p>Enter your activity counts and click Calculate Activity.</p>
+                </div>
 
-          <i id="backendDot"></i>
+                <p class="disclaimer">
+                    Note: This is an experimental rule-based activity indicator
+                    for a student project. It is not a medical diagnosis or a
+                    validated measure of loneliness.
+                </p>
 
-          <div>
-            <b id="backendText">Checking cloud connection</b>
-            <small>Render · FastAPI backend</small>
-          </div>
+            </div>
+        </section>
 
-        </div>
+        <!-- EVENT FEED -->
+        <section class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Recent Activity Events</h2>
+                    <p>Latest updates received by the dashboard</p>
+                </div>
+                <button type="button" id="clear" class="secondary-button">
+                    Clear Events
+                </button>
+            </div>
 
-      </article>
+            <div id="events" class="events-container">
+                <p class="empty-events">Waiting for activity events...</p>
+            </div>
+        </section>
 
-    </section>
+        <footer class="footer">
+            <p>© 2026 ElderCare Activity Monitor | Academic Project Prototype</p>
+            <p>Activity indicators are experimental and not medical assessments.</p>
+        </footer>
 
-    <section class="panel feed">
+    </main>
+</div>
 
-      <div class="panel-head">
-
-        <div>
-          <small>EVENT FEED</small>
-          <h2>Recent monitoring updates</h2>
-          <p>New readings appear automatically when sensor values change.</p>
-        </div>
-
-        <button id="clear">Clear feed</button>
-
-      </div>
-
-      <div id="events" class="events">
-        Waiting for the first live reading…
-      </div>
-
-    </section>
-
-    <footer>
-      ELDERCARE · PASSIVE IOT MONITORING
-
-      <span>
-        Prototype indicator only — not a medical diagnosis or emergency alert system.
-      </span>
-    </footer>
-
-  </main>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 
 </body>
 </html>
