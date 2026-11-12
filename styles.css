@@ -613,3 +613,117 @@ footer span {
     display: block;
   }
 }
+
+/* ===== MEDIUM SIZE DASHBOARD UPGRADE ===== */
+
+main {
+  padding: 42px 48px;
+}
+
+h1 {
+  font-size: 36px;
+}
+
+.section-title h2,
+.panel h2 {
+  font-size: 21px;
+}
+
+.metrics {
+  gap: 18px;
+}
+
+.metrics article {
+  min-height: 160px;
+  padding: 22px;
+}
+
+.metrics label {
+  font-size: 13px;
+}
+
+.number {
+  font-size: 38px;
+}
+
+.metrics article > small,
+.risk small {
+  font-size: 11px;
+}
+
+.panel {
+  padding: 24px;
+}
+
+.panel-head p {
+  font-size: 12px;
+}
+
+.chart {
+  height: 280px;
+}
+
+.device b {
+  font-size: 12px;
+}
+
+.device small {
+  font-size: 11px;
+}
+
+.nav {
+  font-size: 14px;
+  padding: 15px 12px;
+}
+
+.brand strong {
+  font-size: 19px;
+}
+
+.hero {
+  padding: 32px;
+}
+
+.hero h2 {
+  font-size: 29px;
+}
+
+.hero p {
+  font-size: 13px;
+}
+
+.event b {
+  font-size: 12px;
+}
+
+.event small {
+  font-size: 11px;
+}
+
+@media(max-width:1050px) {
+  main {
+    padding: 28px;
+  }
+}
+
+@media(max-width:650px) {
+  main {
+    padding: 20px 13px;
+  }
+
+  h1 {
+    font-size: 27px;
+  }
+
+  .number {
+    font-size: 29px;
+  }
+
+  .hero h2 {
+    font-size: 21px;
+  }
+
+  .chart {
+    height: 220px;
+  }
+}
