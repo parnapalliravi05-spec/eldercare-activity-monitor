@@ -727,3 +727,208 @@ h1 {
     height: 220px;
   }
 }
+
+/* ===== EXTRA LARGE DASHBOARD ===== */
+
+main {
+  padding: 55px 65px;
+  max-width: 1900px;
+}
+
+h1 {
+  font-size: 44px;
+}
+
+.muted {
+  font-size: 15px;
+}
+
+.hero {
+  padding: 42px;
+  margin: 35px 0 40px;
+  border-radius: 20px;
+}
+
+.hero h2 {
+  font-size: 36px;
+}
+
+.hero p {
+  font-size: 15px;
+}
+
+.hero-art {
+  width: 95px;
+  height: 95px;
+  font-size: 34px;
+}
+
+.section-title h2 {
+  font-size: 27px;
+}
+
+.section-title {
+  margin-bottom: 22px;
+}
+
+.metrics {
+  gap: 22px;
+  margin-bottom: 25px;
+}
+
+.metrics article {
+  min-height: 195px;
+  padding: 28px;
+  border-radius: 17px;
+}
+
+.metrics label {
+  font-size: 16px;
+}
+
+.number {
+  font-size: 50px;
+  margin: 20px 0 12px;
+}
+
+.metrics article > small,
+.risk small {
+  font-size: 13px;
+}
+
+.risk-line span {
+  font-size: 11px;
+  padding: 7px 10px;
+}
+
+.track {
+  height: 8px;
+}
+
+.columns {
+  gap: 22px;
+  margin-bottom: 25px;
+}
+
+.panel {
+  padding: 30px;
+  border-radius: 17px;
+}
+
+.panel h2 {
+  font-size: 23px;
+}
+
+.panel-head p {
+  font-size: 13px;
+}
+
+.chart {
+  height: 370px;
+  margin-top: 25px;
+}
+
+.chart-foot {
+  font-size: 12px;
+}
+
+.device {
+  padding: 19px 0;
+  gap: 14px;
+}
+
+.symbol {
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+}
+
+.device b {
+  font-size: 14px;
+}
+
+.device small {
+  font-size: 12px;
+}
+
+.state {
+  font-size: 10px;
+  padding: 7px 10px;
+}
+
+.backend {
+  padding: 16px;
+}
+
+.backend b {
+  font-size: 13px;
+}
+
+.backend small {
+  font-size: 11px;
+}
+
+.event {
+  padding: 16px 0;
+}
+
+.event b {
+  font-size: 13px;
+}
+
+.event small {
+  font-size: 12px;
+}
+
+footer {
+  font-size: 10px;
+}
+
+@media(max-width:1050px) {
+  main {
+    padding: 30px;
+  }
+
+  .chart {
+    height: 300px;
+  }
+}
+
+@media(max-width:650px) {
+  main {
+    padding: 20px 13px;
+  }
+
+  h1 {
+    font-size: 29px;
+  }
+
+  .hero {
+    padding: 22px;
+  }
+
+  .hero h2 {
+    font-size: 23px;
+  }
+
+  .metrics article {
+    padding: 15px;
+    min-height: 145px;
+  }
+
+  .metrics label {
+    font-size: 11px;
+  }
+
+  .number {
+    font-size: 30px;
+  }
+
+  .chart {
+    height: 240px;
+  }
+
+  .panel {
+    padding: 17px;
+  }
+}
