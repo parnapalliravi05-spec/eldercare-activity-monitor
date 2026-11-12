@@ -3,356 +3,430 @@ const API_URL = "https://eldercare-activity-monitor-backend.onrender.com";
 const POLL_MS = 2000;
 const MAX_POINTS = 30;
 
-const $ = id => document.getElementById(id);
+// -------------------------------
+// DASHBOARD ELEMENTS
+// -------------------------------
 
-let chart;
+const movementElement = document.getElementById("movement");
+const doorElement = document.getElementById("door");
+const applianceElement = document.getElementById("appliance");
+const riskElement = document.getElementById("risk");
+const riskStatusElement = document.getElementById("riskStatus");
+const riskFillElement = document.getElementById("riskFill");
+const riskNoteElement = document.getElementById("riskNote");
+
+const connectionElement = document.getElementById("connection");
+const updatedElement = document.getElementById("updated");
+const pirElement = document.getElementById("pir");
+const backendDot = document.getElementById("backendDot");
+const backendText = document.getElementById("backendText");
+
+const eventsElement = document.getElementById("events");
+const clearButton = document.getElementById("clear");
+const movementDeltaElement = document.getElementById("movementDelta");
+
+// -------------------------------
+// CHART SETUP
+// -------------------------------
+
+const labels = [];
+const movementPoints = [];
+
+let activityChart = null;
 let previousMovement = null;
-let previousDataKey = null;
-let feed = [];
+let eventCount = 0;
 
-// CONNECTION STATUS
+const chartCanvas = document.getElementById("activityChart");
 
-function connection(online) {
-
-  $("connection").classList.toggle("offline", !online);
-
-  $("connection").innerHTML = `
-    <i></i>
-    ${online ? "LIVE · CONNECTED" : "RECONNECTING"}
-  `;
-
-  $("backendText").textContent = online
-    ? "Cloud backend connected"
-    : "Backend connection unavailable";
-
-  $("backendDot").classList.toggle("good", online);
-
-  $("pir").textContent = online ? "ONLINE" : "NO DATA";
-  $("pir").classList.toggle("good", online);
-}
-
-// ACTIVITY EVENT FEED
-
-function addEvent(title, detail) {
-
-  feed.unshift({
-    title,
-    detail,
-    time: new Date().toLocaleTimeString()
-  });
-
-  feed = feed.slice(0, 7);
-
-  $("events").innerHTML = feed.map(item => `
-    <div class="event">
-      <div>
-        <b>${item.title}</b>
-        <small>${item.detail}</small>
-      </div>
-      <small>${item.time}</small>
-    </div>
-  `).join("");
-
-}
-
-// INITIALIZE LIVE GRAPH
-
-function initChart() {
-
-  const ctx = $("activityChart").getContext("2d");
-
-  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-
-  gradient.addColorStop(0, "rgba(105,93,246,.22)");
-  gradient.addColorStop(1, "rgba(105,93,246,0)");
-
-  chart = new Chart(ctx, {
-
-    type: "line",
-
-    data: {
-
-      labels: [],
-
-      datasets: [{
-
-        label: "Movement events",
-
-        data: [],
-
-        borderColor: "#6d61f2",
-        backgroundColor: gradient,
-
-        fill: true,
-        tension: 0.35,
-        borderWidth: 2.5,
-
-        pointRadius: 2,
-        pointBackgroundColor: "#fff",
-        pointBorderColor: "#6d61f2"
-
-      }]
-
-    },
-
-    options: {
-
-      responsive: true,
-      maintainAspectRatio: false,
-
-      animation: {
-        duration: 250
-      },
-
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
-
-      scales: {
-
-        x: {
-          grid: {
-            display: false
-          },
-          ticks: {
-            maxTicksLimit: 6,
-            color: "#9aa3b2",
-            font: {
-              size: 9
-            }
-          },
-          border: {
-            display: false
-          }
+if (chartCanvas && window.Chart) {
+    activityChart = new Chart(chartCanvas, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Movement Events",
+                data: movementPoints,
+                borderColor: "#4776e6",
+                backgroundColor: "rgba(71, 118, 230, 0.12)",
+                borderWidth: 3,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 3,
+                pointHoverRadius: 6
+            }]
         },
-
-        y: {
-          beginAtZero: true,
-
-          ticks: {
-            precision: 0,
-            color: "#9aa3b2",
-            font: {
-              size: 9
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: "Movement Count"
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: "Time"
+                    }
+                }
             }
-          },
-
-          grid: {
-            color: "#eff1f6"
-          },
-
-          border: {
-            display: false
-          }
         }
+    });
+}
 
-      }
+// -------------------------------
+// HELPER FUNCTIONS
+// -------------------------------
 
+function getNumber(data, possibleNames) {
+    for (const name of possibleNames) {
+        const value = Number(data?.[name]);
+
+        if (data?.[name] !== undefined && Number.isFinite(value)) {
+            return value;
+        }
     }
 
-  });
-
+    return 0;
 }
 
-// ADD A NEW GRAPH READING
+function updateConnection(isConnected) {
+    if (connectionElement) {
+        connectionElement.textContent = isConnected
+            ? "● Connected"
+            : "● Disconnected";
 
-function sampleChart(value) {
+        connectionElement.className = isConnected
+            ? "status-badge good"
+            : "status-badge";
+    }
 
-  const time = new Date().toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
+    if (backendDot) {
+        backendDot.className = isConnected
+            ? "status-dot good"
+            : "status-dot";
+    }
 
-  chart.data.labels.push(time);
-
-  chart.data.datasets[0].data.push(value);
-
-  if (chart.data.labels.length > MAX_POINTS) {
-
-    chart.data.labels.shift();
-
-    chart.data.datasets[0].data.shift();
-
-  }
-
-  chart.update("none");
-
+    if (backendText) {
+        backendText.textContent = isConnected
+            ? "Backend Connected"
+            : "Backend Disconnected";
+    }
 }
 
-// UPDATE DASHBOARD WITH BACKEND DATA
+function addEvent(message) {
+    if (!eventsElement) return;
+
+    if (eventCount === 0) {
+        eventsElement.innerHTML = "";
+    }
+
+    const event = document.createElement("div");
+    event.className = "event-item";
+
+    const time = new Date().toLocaleTimeString();
+
+    const messageElement = document.createElement("span");
+    messageElement.textContent = message;
+
+    const timeElement = document.createElement("small");
+    timeElement.textContent = time;
+
+    event.appendChild(messageElement);
+    event.appendChild(timeElement);
+
+    eventsElement.prepend(event);
+
+    eventCount++;
+
+    while (eventsElement.children.length > 20) {
+        eventsElement.removeChild(eventsElement.lastChild);
+    }
+}
+
+// -------------------------------
+// LIVE RISK DISPLAY
+// -------------------------------
+
+function updateRiskDisplay(data) {
+    const suppliedRisk = data.risk_score ?? data.riskScore ?? data.risk;
+
+    const score = Number(suppliedRisk);
+
+    if (suppliedRisk !== undefined && Number.isFinite(score)) {
+        const safeScore = Math.max(0, Math.min(100, score));
+
+        if (riskElement) {
+            riskElement.textContent = Math.round(safeScore) + "%";
+        }
+
+        if (riskFillElement) {
+            riskFillElement.style.width = safeScore + "%";
+        }
+
+        const suppliedStatus = data.risk_status ?? data.riskStatus;
+
+        if (riskStatusElement) {
+            riskStatusElement.textContent =
+                suppliedStatus || "Prototype activity indicator";
+        }
+    } else {
+        if (riskElement) {
+            riskElement.textContent = "--";
+        }
+
+        if (riskStatusElement) {
+            riskStatusElement.textContent =
+                "Risk score not supplied by backend";
+        }
+
+        if (riskFillElement) {
+            riskFillElement.style.width = "0%";
+        }
+    }
+
+    if (riskNoteElement) {
+        riskNoteElement.textContent =
+            "Experimental activity indicator — not a diagnosis.";
+    }
+}
+
+// -------------------------------
+// UPDATE LIVE DASHBOARD
+// -------------------------------
 
 function updateDashboard(data) {
+    const movement = getNumber(data, [
+        "movement_count",
+        "movement",
+        "movement_events"
+    ]);
 
-  const movement = Number(data.movement_count) || 0;
+    const door = getNumber(data, [
+        "door_events",
+        "door_count",
+        "door"
+    ]);
 
-  const door = Number(data.door_events) || 0;
+    const appliance = getNumber(data, [
+        "appliance_events",
+        "appliance_count",
+        "appliance"
+    ]);
 
-  const appliance = Number(data.appliance_events) || 0;
+    if (movementElement) movementElement.textContent = movement;
+    if (doorElement) doorElement.textContent = door;
+    if (applianceElement) applianceElement.textContent = appliance;
 
-  const risk = Math.max(
-    0,
-    Math.min(100, Number(data.risk_score) || 0)
-  );
-
-  const status = String(data.status || "UNKNOWN")
-    .toUpperCase();
-
-  // UPDATE SENSOR COUNTS
-
-  $("movement").textContent = movement;
-
-  $("door").textContent = door;
-
-  $("appliance").textContent = appliance;
-
-  // UPDATE RISK INDICATOR
-
-  $("risk").textContent = risk + "%";
-
-  $("riskFill").style.width = risk + "%";
-
-  $("riskStatus").textContent = status.replaceAll("_", " ");
-
-  $("riskNote").textContent =
-    status.includes("NORMAL")
-      ? "Activity is within the prototype's normal range"
-      : status.includes("LOW")
-      ? "Activity is below the prototype's normal range"
-      : "Prototype activity indicator — review context";
-
-  // UPDATE LAST REFRESH TIME
-
-  $("updated").textContent =
-    new Date().toLocaleTimeString();
-
-  // CHECK FOR NEW MOVEMENT
-
-  if (previousMovement === null) {
-
-    $("movementDelta").textContent =
-      "First live reading received";
-
-    addEvent(
-      "Monitoring connected",
-      `Initial movement count: ${movement}`
-    );
-
-  }
-
-  else if (movement !== previousMovement) {
-
-    const difference = movement - previousMovement;
-
-    $("movementDelta").textContent =
-      difference > 0
-        ? `+${difference} new movement event(s)`
-        : "Movement counter changed";
-
-    addEvent(
-      "Movement data updated",
-      `Movement count: ${movement}`
-    );
-
-  }
-
-  else {
-
-    $("movementDelta").textContent =
-      "No new movement since last reading";
-
-  }
-
-  // ADD READING TO GRAPH
-
-  sampleChart(movement);
-
-  // DETECT OTHER SENSOR CHANGES
-
-  const dataKey = [
-    movement,
-    door,
-    appliance,
-    risk,
-    status
-  ].join("|");
-
-  if (
-    previousDataKey !== null &&
-    dataKey !== previousDataKey &&
-    movement === previousMovement &&
-    (door !== 0 || appliance !== 0)
-  ) {
-
-    addEvent(
-      "Sensor data updated",
-      `Door: ${door} · Appliance: ${appliance}`
-    );
-
-  }
-
-  previousMovement = movement;
-
-  previousDataKey = dataKey;
-
-}
-
-// FETCH LIVE DATA FROM RENDER
-
-async function pollBackend() {
-
-  try {
-
-    const response = await fetch(
-      `${API_URL}/latest`,
-      {
-        method: "GET",
-        cache: "no-store"
-      }
-    );
-
-    if (!response.ok) {
-
-      throw new Error(`HTTP ${response.status}`);
-
+    if (pirElement) {
+        pirElement.textContent = "Receiving activity data";
     }
 
-    const data = await response.json();
+    if (movementDeltaElement) {
+        if (previousMovement === null) {
+            movementDeltaElement.textContent = "First reading received";
+        } else if (movement > previousMovement) {
+            movementDeltaElement.textContent =
+                "+" + (movement - previousMovement) + " new movement event(s)";
+        } else {
+            movementDeltaElement.textContent = "No new movement events";
+        }
+    }
 
-    console.log("Live backend data received:", data);
+    if (previousMovement !== null && movement > previousMovement) {
+        addEvent(
+            "Movement detected. Total movement count: " + movement
+        );
+    }
 
-    connection(true);
+    previousMovement = movement;
 
-    updateDashboard(data);
+    updateRiskDisplay(data);
 
-  }
+    // Update chart
+    const time = new Date().toLocaleTimeString();
 
-  catch (error) {
+    if (activityChart) {
+        labels.push(time);
+        movementPoints.push(movement);
 
-    console.error("Backend connection error:", error);
+        if (labels.length > MAX_POINTS) {
+            labels.shift();
+            movementPoints.shift();
+        }
 
-    connection(false);
+        activityChart.update("none");
+    }
 
-  }
-
+    if (updatedElement) {
+        updatedElement.textContent =
+            "Last updated: " + new Date().toLocaleTimeString();
+    }
 }
 
+// -------------------------------
+// FETCH LIVE BACKEND DATA
+// -------------------------------
+
+async function fetchLiveData() {
+    try {
+        const response = await fetch(
+            API_URL + "/latest",
+            { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+            throw new Error("Backend returned " + response.status);
+        }
+
+        const data = await response.json();
+
+        updateDashboard(data);
+        updateConnection(true);
+
+        console.log("Live backend data received:", data);
+
+    } catch (error) {
+        console.error("Backend connection error:", error);
+
+        updateConnection(false);
+
+        if (pirElement) {
+            pirElement.textContent = "Waiting for sensor data";
+        }
+
+        if (updatedElement) {
+            updatedElement.textContent = "Unable to fetch latest data";
+        }
+    }
+}
+
+// -------------------------------
+// MANUAL ACTIVITY CALCULATOR
+// -------------------------------
+
+const manualMovement = document.getElementById("manualMovement");
+const manualDoor = document.getElementById("manualDoor");
+const manualAppliance = document.getElementById("manualAppliance");
+
+const calculateButton = document.getElementById("calculateManual");
+const resetButton = document.getElementById("resetManual");
+const manualResult = document.getElementById("manualResult");
+
+function calculateManualActivity() {
+    const movement = Number(manualMovement?.value);
+    const door = Number(manualDoor?.value);
+    const appliance = Number(manualAppliance?.value);
+
+    const values = [movement, door, appliance];
+
+    if (
+        values.some(value =>
+            !Number.isFinite(value) || value < 0 || !Number.isInteger(value)
+        )
+    ) {
+        manualResult.innerHTML = `
+            <h3>Invalid Input</h3>
+            <p>Please enter valid whole numbers greater than or equal to zero.</p>
+        `;
+        return;
+    }
+
+    const total = movement + door + appliance;
+
+    let score;
+    let status;
+    let description;
+
+    // Demonstration thresholds for the academic prototype.
+    if (total >= 22) {
+        score = 12;
+        status = "Normal Activity";
+        description = "The entered activity count is relatively high.";
+    } else if (total >= 12) {
+        score = 38;
+        status = "Low Activity";
+        description = "The entered activity count is moderate.";
+    } else {
+        score = 78;
+        status = "High Inactivity Indicator";
+        description = "The entered activity count is relatively low.";
+    }
+
+    manualResult.innerHTML = `
+        <h3>Manual Calculation Result</h3>
+
+        <div class="manual-result-grid">
+            <div>
+                <span>Total Events</span>
+                <strong>${total}</strong>
+            </div>
+
+            <div>
+                <span>Prototype Indicator</span>
+                <strong>${score}%</strong>
+            </div>
+        </div>
+
+        <h3>${status}</h3>
+        <p>${description}</p>
+
+        <small>
+            This result is based only on the entered counts and
+            demonstration thresholds. It is not a medical or
+            validated loneliness-risk assessment.
+        </small>
+    `;
+
+    addEvent("Manual calculator used. Total entered events: " + total);
+}
+
+if (calculateButton) {
+    calculateButton.addEventListener("click", calculateManualActivity);
+}
+
+if (resetButton) {
+    resetButton.addEventListener("click", () => {
+        if (manualMovement) manualMovement.value = 0;
+        if (manualDoor) manualDoor.value = 0;
+        if (manualAppliance) manualAppliance.value = 0;
+
+        if (manualResult) {
+            manualResult.innerHTML = `
+                <h3>Calculation Result</h3>
+                <p>Enter your activity counts and click Calculate Activity.</p>
+            `;
+        }
+    });
+}
+
+// -------------------------------
 // CLEAR EVENT FEED
+// -------------------------------
 
-$("clear").addEventListener("click", () => {
+if (clearButton && eventsElement) {
+    clearButton.addEventListener("click", () => {
+        eventCount = 0;
+        eventsElement.innerHTML = `
+            <p class="empty-events">No recent events.</p>
+        `;
+    });
+}
 
-  feed = [];
-
-  $("events").textContent = "Event feed cleared.";
-
-});
-
+// -------------------------------
 // START LIVE MONITORING
+// -------------------------------
 
-initChart();
+fetchLiveData();
+setInterval(fetchLiveData, POLL_MS);
 
-pollBackend();
-
-setInterval(pollBackend, POLL_MS);
+console.log("ElderCare dashboard initialized.");
