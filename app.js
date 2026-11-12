@@ -1,235 +1,358 @@
 
-// ==========================================
-// ELDERCARE ACTIVITY MONITOR
-// Live ESP32 + FastAPI + Website Connection
-// ==========================================
+const API_URL = "https://eldercare-activity-monitor-backend.onrender.com";
+const POLL_MS = 2000;
+const MAX_POINTS = 30;
 
-// Render backend URL
-const API_URL =
-  "https://eldercare-activity-monitor-backend.onrender.com";
+const $ = id => document.getElementById(id);
 
-// Refresh interval: 2 seconds
-const REFRESH_INTERVAL = 2000;
+let chart;
+let previousMovement = null;
+let previousDataKey = null;
+let feed = [];
 
-// Website inputs
-const movementInput = document.getElementById("movementInput");
-const doorInput = document.getElementById("doorInput");
-const applianceInput = document.getElementById("applianceInput");
+// CONNECTION STATUS
 
-// Buttons
-const calculateBtn = document.getElementById("calculateBtn");
-const normalBtn = document.getElementById("normalBtn");
-const lowBtn = document.getElementById("lowBtn");
-const resetBtn = document.getElementById("resetBtn");
+function connection(online) {
 
-// Dashboard outputs
-const riskLevel = document.getElementById("riskLevel");
-const riskScore = document.getElementById("riskScore");
-const heroScore = document.getElementById("heroScore");
+  $("connection").classList.toggle("offline", !online);
 
-const alertBox = document.getElementById("alertBox");
-const alertTitle = document.getElementById("alertTitle");
-const alertMessage = document.getElementById("alertMessage");
+  $("connection").innerHTML = `
+    <i></i>
+    ${online ? "LIVE · CONNECTED" : "RECONNECTING"}
+  `;
 
-const totalEvents = document.getElementById("totalEvents");
+  $("backendText").textContent = online
+    ? "Cloud backend connected"
+    : "Backend connection unavailable";
 
-// Activity bars
-const movementBar = document.getElementById("movementBar");
-const doorBar = document.getElementById("doorBar");
-const applianceBar = document.getElementById("applianceBar");
+  $("backendDot").classList.toggle("good", online);
 
+  $("pir").textContent = online ? "ONLINE" : "NO DATA";
+  $("pir").classList.toggle("good", online);
+}
 
-// ==========================================
-// UPDATE DASHBOARD
-// ==========================================
+// ACTIVITY EVENT FEED
 
-function updateDashboard(data) {
-  const movement = Number(data.movement_count) || 0;
-  const door = Number(data.door_events) || 0;
-  const appliance = Number(data.appliance_events) || 0;
+function addEvent(title, detail) {
 
-  const total =
-    data.total_events !== undefined
-      ? Number(data.total_events)
-      : movement + door + appliance;
+  feed.unshift({
+    title,
+    detail,
+    time: new Date().toLocaleTimeString()
+  });
 
-  const score = Number(data.risk_score) || 0;
-  const state = String(data.status || "UNKNOWN").toUpperCase();
+  feed = feed.slice(0, 7);
 
-  movementInput.value = movement;
-  doorInput.value = door;
-  applianceInput.value = appliance;
+  $("events").innerHTML = feed.map(item => `
+    <div class="event">
+      <div>
+        <b>${item.title}</b>
+        <small>${item.detail}</small>
+      </div>
+      <small>${item.time}</small>
+    </div>
+  `).join("");
 
-  riskLevel.textContent = state;
-  riskScore.textContent = score + "%";
-  heroScore.textContent = score + "%";
-  totalEvents.textContent = total;
+}
 
-  if (state === "NORMAL") {
-    alertBox.className = "alert-box normal";
-    alertTitle.textContent = "Normal activity";
-    alertMessage.textContent =
-      "Activity is currently within the expected range.";
-  } else if (state.includes("LOW")) {
-    alertBox.className = "alert-box low";
-    alertTitle.textContent = "Low activity";
-    alertMessage.textContent =
-      "Activity is lower than the normal demonstration range.";
-  } else {
-    alertBox.className = "alert-box alert";
-    alertTitle.textContent = "High activity-risk";
-    alertMessage.textContent =
-      "Very low activity detected. A caregiver check may be appropriate.";
+// INITIALIZE LIVE GRAPH
+
+function initChart() {
+
+  const ctx = $("activityChart").getContext("2d");
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+
+  gradient.addColorStop(0, "rgba(105,93,246,.22)");
+  gradient.addColorStop(1, "rgba(105,93,246,0)");
+
+  chart = new Chart(ctx, {
+
+    type: "line",
+
+    data: {
+
+      labels: [],
+
+      datasets: [{
+
+        label: "Movement events",
+
+        data: [],
+
+        borderColor: "#6d61f2",
+        backgroundColor: gradient,
+
+        fill: true,
+        tension: 0.35,
+        borderWidth: 2.5,
+
+        pointRadius: 2,
+        pointBackgroundColor: "#fff",
+        pointBorderColor: "#6d61f2"
+
+      }]
+
+    },
+
+    options: {
+
+      responsive: true,
+      maintainAspectRatio: false,
+
+      animation: {
+        duration: 250
+      },
+
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+
+      scales: {
+
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            maxTicksLimit: 6,
+            color: "#9aa3b2",
+            font: {
+              size: 9
+            }
+          },
+          border: {
+            display: false
+          }
+        },
+
+        y: {
+          beginAtZero: true,
+
+          ticks: {
+            precision: 0,
+            color: "#9aa3b2",
+            font: {
+              size: 9
+            }
+          },
+
+          grid: {
+            color: "#eff1f6"
+          },
+
+          border: {
+            display: false
+          }
+        }
+
+      }
+
+    }
+
+  });
+
+}
+
+// ADD A NEW GRAPH READING
+
+function sampleChart(value) {
+
+  const time = new Date().toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+
+  chart.data.labels.push(time);
+
+  chart.data.datasets[0].data.push(value);
+
+  if (chart.data.labels.length > MAX_POINTS) {
+
+    chart.data.labels.shift();
+
+    chart.data.datasets[0].data.shift();
+
   }
 
-  updateBars(movement, door, appliance);
+  chart.update("none");
+
 }
 
+// UPDATE DASHBOARD WITH BACKEND DATA
 
-// ==========================================
-// ACTIVITY BAR DISPLAY
-// ==========================================
+function updateDashboard(data) {
 
-function updateBars(movement, door, appliance) {
-  const maxValue = Math.max(movement, door, appliance, 1);
+  const movement = Number(data.movement_count) || 0;
 
-  movementBar.style.height =
-    Math.min((movement / maxValue) * 100, 100) + "%";
+  const door = Number(data.door_events) || 0;
 
-  doorBar.style.height =
-    Math.min((door / maxValue) * 100, 100) + "%";
+  const appliance = Number(data.appliance_events) || 0;
 
-  applianceBar.style.height =
-    Math.min((appliance / maxValue) * 100, 100) + "%";
+  const risk = Math.max(
+    0,
+    Math.min(100, Number(data.risk_score) || 0)
+  );
+
+  const status = String(data.status || "UNKNOWN")
+    .toUpperCase();
+
+  // UPDATE SENSOR COUNTS
+
+  $("movement").textContent = movement;
+
+  $("door").textContent = door;
+
+  $("appliance").textContent = appliance;
+
+  // UPDATE RISK INDICATOR
+
+  $("risk").textContent = risk + "%";
+
+  $("riskFill").style.width = risk + "%";
+
+  $("riskStatus").textContent = status.replaceAll("_", " ");
+
+  $("riskNote").textContent =
+    status.includes("NORMAL")
+      ? "Activity is within the prototype's normal range"
+      : status.includes("LOW")
+      ? "Activity is below the prototype's normal range"
+      : "Prototype activity indicator — review context";
+
+  // UPDATE LAST REFRESH TIME
+
+  $("updated").textContent =
+    new Date().toLocaleTimeString();
+
+  // CHECK FOR NEW MOVEMENT
+
+  if (previousMovement === null) {
+
+    $("movementDelta").textContent =
+      "First live reading received";
+
+    addEvent(
+      "Monitoring connected",
+      `Initial movement count: ${movement}`
+    );
+
+  }
+
+  else if (movement !== previousMovement) {
+
+    const difference = movement - previousMovement;
+
+    $("movementDelta").textContent =
+      difference > 0
+        ? `+${difference} new movement event(s)`
+        : "Movement counter changed";
+
+    addEvent(
+      "Movement data updated",
+      `Movement count: ${movement}`
+    );
+
+  }
+
+  else {
+
+    $("movementDelta").textContent =
+      "No new movement since last reading";
+
+  }
+
+  // ADD READING TO GRAPH
+
+  sampleChart(movement);
+
+  // DETECT OTHER SENSOR CHANGES
+
+  const dataKey = [
+    movement,
+    door,
+    appliance,
+    risk,
+    status
+  ].join("|");
+
+  if (
+    previousDataKey !== null &&
+    dataKey !== previousDataKey &&
+    movement === previousMovement &&
+    (door !== 0 || appliance !== 0)
+  ) {
+
+    addEvent(
+      "Sensor data updated",
+      `Door: ${door} · Appliance: ${appliance}`
+    );
+
+  }
+
+  previousMovement = movement;
+
+  previousDataKey = dataKey;
+
 }
 
+// FETCH LIVE DATA FROM RENDER
 
-// ==========================================
-// GET LATEST DATA FROM RENDER BACKEND
-// ==========================================
+async function pollBackend() {
 
-async function getLiveData() {
   try {
-    const response = await fetch(API_URL + "/latest", {
-      method: "GET",
-      cache: "no-store"
-    });
+
+    const response = await fetch(
+      `${API_URL}/latest`,
+      {
+        method: "GET",
+        cache: "no-store"
+      }
+    );
 
     if (!response.ok) {
-      throw new Error("Backend returned HTTP " + response.status);
+
+      throw new Error(`HTTP ${response.status}`);
+
     }
 
     const data = await response.json();
 
-    updateDashboard(data);
-
     console.log("Live backend data received:", data);
 
-  } catch (error) {
+    connection(true);
+
+    updateDashboard(data);
+
+  }
+
+  catch (error) {
+
     console.error("Backend connection error:", error);
 
-    alertBox.className = "alert-box low";
-    alertTitle.textContent = "Backend connection problem";
-    alertMessage.textContent =
-      "Waiting for the backend. Please check the ESP32 and Render service.";
-  }
-}
+    connection(false);
 
-
-// ==========================================
-// MANUAL DEMONSTRATION CALCULATION
-// ==========================================
-
-function getNumber(input) {
-  const value = Number(input.value);
-
-  if (!Number.isFinite(value) || value < 0) {
-    return 0;
   }
 
-  return value;
 }
 
-function calculateActivity() {
-  const movement = getNumber(movementInput);
-  const door = getNumber(doorInput);
-  const appliance = getNumber(applianceInput);
+// CLEAR EVENT FEED
 
-  const total = movement + door + appliance;
+$("clear").addEventListener("click", () => {
 
-  let score;
-  let state;
-  let title;
-  let message;
-  let className;
+  feed = [];
 
-  if (total >= 22) {
-    score = 12;
-    state = "NORMAL";
-    title = "Normal activity";
-    message = "Activity is currently within the expected range.";
-    className = "normal";
-  } else if (total >= 12) {
-    score = 38;
-    state = "LOW ACTIVITY";
-    title = "Low activity";
-    message = "Activity is lower than the normal demonstration range.";
-    className = "low";
-  } else {
-    score = 78;
-    state = "HIGH RISK";
-    title = "High activity-risk";
-    message = "Very low activity detected. A caregiver check may be appropriate.";
-    className = "alert";
-  }
+  $("events").textContent = "Event feed cleared.";
 
-  updateDashboard({
-    movement_count: movement,
-    door_events: door,
-    appliance_events: appliance,
-    total_events: total,
-    risk_score: score,
-    status: state
-  });
-
-  alertTitle.textContent = title;
-  alertMessage.textContent = message;
-  alertBox.className = "alert-box " + className;
-}
-
-
-// ==========================================
-// BUTTON EVENTS
-// ==========================================
-
-normalBtn.addEventListener("click", function () {
-  movementInput.value = 18;
-  doorInput.value = 5;
-  applianceInput.value = 7;
-  calculateActivity();
 });
 
-lowBtn.addEventListener("click", function () {
-  movementInput.value = 7;
-  doorInput.value = 2;
-  applianceInput.value = 2;
-  calculateActivity();
-});
-
-calculateBtn.addEventListener("click", calculateActivity);
-
-resetBtn.addEventListener("click", function () {
-  movementInput.value = 18;
-  doorInput.value = 5;
-  applianceInput.value = 7;
-  calculateActivity();
-});
-
-
-// ==========================================
 // START LIVE MONITORING
-// ==========================================
 
-getLiveData();
+initChart();
 
-setInterval(getLiveData, REFRESH_INTERVAL);
+pollBackend();
+
+setInterval(pollBackend, POLL_MS);
