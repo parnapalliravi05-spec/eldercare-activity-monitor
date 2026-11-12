@@ -1,657 +1,252 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PRJ_62 | ElderCare Activity Monitor</title>
+  <meta name="theme-color" content="#0b1220">
+  <title>ElderCare | Live Monitoring</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<header class="navbar">
-  <div class="nav-inner">
-    <a class="brand" href="#home">PRJ_62</a>
+  <aside class="sidebar">
 
-    <nav>
-      <a href="#overview">Overview</a>
-      <a href="#monitor">Monitor</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#hardware">Hardware</a>
-    </nav>
-  </div>
-</header>
-
-
-<main>
-
-<!-- HOME -->
-<section id="home" class="hero">
-
-  <div class="hero-content">
-
-    <p class="eyebrow">B.Tech AI & Data Science • Project Review</p>
-
-    <h1>
-      ElderCare<br>
-      <span>Activity Monitor</span>
-    </h1>
-
-    <p class="hero-text">
-      A passive monitoring system designed to observe daily activity
-      patterns and identify unusual inactivity for caregiver attention.
-    </p>
-
-    <div class="hero-buttons">
-      <a class="btn primary" href="#monitor">Open Monitor</a>
-      <a class="btn secondary" href="#architecture">View Architecture</a>
+    <div class="brand">
+      <b class="logo">E</b>
+      <div>
+        <strong>eldercare</strong>
+        <small>PASSIVE CARE SYSTEM</small>
+      </div>
     </div>
 
-  </div>
+    <p class="nav-label">WORKSPACE</p>
 
+    <a class="nav active" href="#overview">▦ &nbsp; Live overview</a>
+    <a class="nav" href="#analytics">⌁ &nbsp; Activity analytics</a>
+    <a class="nav" href="#devices">◉ &nbsp; Sensor status</a>
 
-  <div class="hero-card">
-
-    <div class="status-row">
-      <span class="status-dot"></span>
-      <span>MONITORING READY</span>
+    <div class="privacy">
+      <b>✓ &nbsp; Privacy-first monitoring</b>
+      <small>No camera or audio recording</small>
     </div>
 
-    <div class="hero-score" id="heroScore">12%</div>
+  </aside>
 
-    <p>Current activity-risk score</p>
+  <main id="overview">
 
-    <div class="mini-bars">
-      <span style="height:45%"></span>
-      <span style="height:72%"></span>
-      <span style="height:58%"></span>
-      <span style="height:84%"></span>
-      <span style="height:62%"></span>
-      <span style="height:78%"></span>
-    </div>
+    <header>
+      <div>
+        <small class="crumb">HOME / LIVE MONITORING</small>
+        <h1>Live monitoring</h1>
+        <p class="muted">A real-time view of daily activity signals and system health.</p>
+      </div>
 
-  </div>
+      <div class="head-right">
+        <span id="connection" class="pill">
+          <i></i> CONNECTING
+        </span>
 
-</section>
+        <small>Last update <b id="updated">—</b></small>
+      </div>
+    </header>
 
+    <section class="hero">
 
-<!-- OVERVIEW -->
-<section id="overview" class="section">
+      <small>ELDERCARE ACTIVITY MONITOR</small>
 
-  <div class="section-heading">
-
-    <p class="eyebrow">01 • PROJECT OVERVIEW</p>
-
-    <h2>Passive activity monitoring</h2>
-
-    <p>
-      The system uses activity information such as movement,
-      door events and appliance usage to estimate an activity-risk
-      level for an elderly person living alone.
-    </p>
-
-  </div>
-
-
-  <div class="feature-grid">
-
-    <article class="feature-card">
-      <div class="icon">01</div>
-
-      <h3>Activity collection</h3>
+      <h2>Small signals. <em>Meaningful care.</em></h2>
 
       <p>
-        Movement, door and appliance events can be collected
-        through passive monitoring.
+        Sensor readings refresh automatically while this page stays open.
       </p>
-    </article>
 
+      <div class="hero-art">
+        ⌁
+        <small>LIVE<br>STREAM</small>
+      </div>
 
-    <article class="feature-card">
-      <div class="icon">02</div>
+    </section>
 
-      <h3>Activity analysis</h3>
-
-      <p>
-        The collected activity information is processed to
-        identify changes from normal activity.
-      </p>
-    </article>
-
-
-    <article class="feature-card">
-      <div class="icon">03</div>
-
-      <h3>Caregiver awareness</h3>
-
-      <p>
-        A higher-risk activity pattern can be highlighted so
-        that a caregiver can check on the person.
-      </p>
-    </article>
-
-  </div>
-
-</section>
-
-
-<!-- MONITOR -->
-<section id="monitor" class="section dark-section">
-
-  <div class="section-heading">
-
-    <p class="eyebrow">02 • ACTIVITY MONITOR</p>
-
-    <h2>Manual activity demonstration</h2>
-
-    <p>
-      Enter the activity events below to demonstrate how the
-      activity-risk calculation works.
-    </p>
-
-  </div>
-
-
-  <div class="dashboard">
-
-    <div class="dashboard-top">
+    <div class="section-title">
 
       <div>
-        <p class="small-label">CURRENT STATE</p>
-
-        <h3 id="riskLevel">NORMAL</h3>
+        <small>AT A GLANCE</small>
+        <h2>Activity snapshot</h2>
       </div>
 
-
-      <div class="score-box">
-
-        <span>Risk score</span>
-
-        <strong id="riskScore">12%</strong>
-
-      </div>
-
-    </div>
-
-
-    <div id="alertBox" class="alert-box normal">
-
-      <strong id="alertTitle">
-        Normal activity
-      </strong>
-
-      <span id="alertMessage">
-        Activity is currently within the expected range.
+      <span class="auto">
+        <i></i> Auto-refresh every 2 seconds
       </span>
 
     </div>
 
+    <section class="metrics">
 
-    <!-- MANUAL INPUTS -->
-    <div class="input-grid">
+      <article>
+        <label>Movement events</label>
+        <b id="movement" class="number">—</b>
+        <small id="movementDelta">Waiting for sensor data</small>
+      </article>
 
-      <div class="input-card">
+      <article>
+        <label>Door events</label>
+        <b id="door" class="number">—</b>
+        <small>Door sensor channel</small>
+      </article>
 
-        <label for="movementInput">
-          Movement events
-        </label>
+      <article>
+        <label>Appliance events</label>
+        <b id="appliance" class="number">—</b>
+        <small>Appliance sensor channel</small>
+      </article>
 
-        <input
-          id="movementInput"
-          type="number"
-          min="0"
-          value="18"
-        >
+      <article class="risk">
 
-        <small>
-          Number of detected movement events
-        </small>
+        <label>Activity risk indicator</label>
 
-      </div>
+        <div class="risk-line">
+          <b id="risk" class="number">—%</b>
+          <span id="riskStatus">WAITING</span>
+        </div>
 
+        <div class="track">
+          <i id="riskFill"></i>
+        </div>
 
-      <div class="input-card">
+        <small id="riskNote">Awaiting backend analysis</small>
 
-        <label for="doorInput">
-          Door events
-        </label>
+      </article>
 
-        <input
-          id="doorInput"
-          type="number"
-          min="0"
-          value="5"
-        >
+    </section>
 
-        <small>
-          Door opening / closing events
-        </small>
+    <section class="columns" id="analytics">
 
-      </div>
+      <article class="panel">
 
+        <div class="panel-head">
 
-      <div class="input-card">
+          <div>
+            <small>LIVE TELEMETRY</small>
+            <h2>Movement activity trend</h2>
+            <p>Cumulative movement events received from the ESP32.</p>
+          </div>
 
-        <label for="applianceInput">
-          Appliance events
-        </label>
-
-        <input
-          id="applianceInput"
-          type="number"
-          min="0"
-          value="7"
-        >
-
-        <small>
-          Appliance usage events
-        </small>
-
-      </div>
-
-    </div>
-
-
-    <!-- BUTTONS -->
-    <div class="button-row">
-
-      <button
-        class="btn primary"
-        id="calculateBtn"
-        type="button"
-      >
-        Calculate
-      </button>
-
-
-      <button
-        class="btn secondary"
-        id="normalBtn"
-        type="button"
-      >
-        Simulate Normal
-      </button>
-
-
-      <button
-        class="btn secondary"
-        id="lowBtn"
-        type="button"
-      >
-        Simulate Low Activity
-      </button>
-
-
-      <button
-        class="btn secondary"
-        id="resetBtn"
-        type="button"
-      >
-        Reset
-      </button>
-
-    </div>
-
-
-    <!-- TOTAL ACTIVITY -->
-    <div class="dashboard-stats">
-
-      <div>
-        <span>Total activity events</span>
-        <strong id="totalEvents">30</strong>
-      </div>
-
-
-      <div>
-        <span>Activity source</span>
-        <strong>Manual Demo</strong>
-      </div>
-
-
-      <div>
-        <span>Monitoring type</span>
-        <strong>Passive IoT</strong>
-      </div>
-
-    </div>
-
-
-    <!-- ACTIVITY BARS -->
-    <div class="activity-chart">
-
-      <div class="chart-title">
-
-        <span>Activity signals</span>
-
-        <span>Current input</span>
-
-      </div>
-
-
-      <div class="bars">
-
-        <div class="bar-wrap">
-
-          <div
-            class="bar"
-            id="movementBar"
-            style="height:60%"
-          ></div>
-
-          <span>Movement</span>
+          <span class="live">● LIVE</span>
 
         </div>
 
+        <div class="chart">
+          <canvas id="activityChart"></canvas>
+        </div>
 
-        <div class="bar-wrap">
+        <small class="chart-foot">
+          Latest 30 readings in this browser session
+        </small>
 
-          <div
-            class="bar"
-            id="doorBar"
-            style="height:35%"
-          ></div>
+      </article>
 
-          <span>Door</span>
+      <article class="panel" id="devices">
+
+        <div class="panel-head">
+          <div>
+            <small>DEVICE HEALTH</small>
+            <h2>Sensor status</h2>
+            <p>Cloud-reported sensor channels.</p>
+          </div>
+        </div>
+
+        <div class="device">
+
+          <span class="symbol">◉</span>
+
+          <div>
+            <b>PIR motion sensor</b>
+            <small>GPIO 25 · Movement detection</small>
+          </div>
+
+          <span id="pir" class="state good">ONLINE</span>
 
         </div>
 
+        <div class="device">
 
-        <div class="bar-wrap">
+          <span class="symbol blue">↔</span>
 
-          <div
-            class="bar"
-            id="applianceBar"
-            style="height:45%"
-          ></div>
+          <div>
+            <b>Door sensor</b>
+            <small>Not yet connected</small>
+          </div>
 
-          <span>Appliance</span>
+          <span class="state pending">PENDING</span>
 
         </div>
+
+        <div class="device">
+
+          <span class="symbol amber">⌁</span>
+
+          <div>
+            <b>Appliance monitoring</b>
+            <small>Not yet connected</small>
+          </div>
+
+          <span class="state pending">PENDING</span>
+
+        </div>
+
+        <div class="backend">
+
+          <i id="backendDot"></i>
+
+          <div>
+            <b id="backendText">Checking cloud connection</b>
+            <small>Render · FastAPI backend</small>
+          </div>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <section class="panel feed">
+
+      <div class="panel-head">
+
+        <div>
+          <small>EVENT FEED</small>
+          <h2>Recent monitoring updates</h2>
+          <p>New readings appear automatically when sensor values change.</p>
+        </div>
+
+        <button id="clear">Clear feed</button>
 
       </div>
 
-    </div>
+      <div id="events" class="events">
+        Waiting for the first live reading…
+      </div>
 
-  </div>
+    </section>
 
-</section>
+    <footer>
+      ELDERCARE · PASSIVE IOT MONITORING
 
+      <span>
+        Prototype indicator only — not a medical diagnosis or emergency alert system.
+      </span>
+    </footer>
 
-<!-- ARCHITECTURE -->
-<section id="architecture" class="section">
+  </main>
 
-  <div class="section-heading">
-
-    <p class="eyebrow">03 • SYSTEM ARCHITECTURE</p>
-
-    <h2>Sensor → Analysis → Alert</h2>
-
-    <p>
-      The planned system connects passive sensors with a Python
-      backend and activity-risk analysis.
-    </p>
-
-  </div>
-
-
-  <div class="architecture">
-
-    <div class="arch-node">
-      PIR Sensor
-      <br>
-      <small>Movement</small>
-    </div>
-
-    <div class="arrow">→</div>
-
-    <div class="arch-node">
-      Door Sensor
-      <br>
-      <small>Door events</small>
-    </div>
-
-    <div class="arrow">→</div>
-
-    <div class="arch-node">
-      Appliance
-      <br>
-      <small>Usage</small>
-    </div>
-
-    <div class="arrow">→</div>
-
-    <div class="arch-node highlight">
-      ESP32
-      <br>
-      <small>Data collection</small>
-    </div>
-
-    <div class="arrow">→</div>
-
-    <div class="arch-node highlight">
-      FastAPI
-      <br>
-      <small>Backend</small>
-    </div>
-
-    <div class="arrow">→</div>
-
-    <div class="arch-node highlight">
-      Python / ML
-      <br>
-      <small>Analysis</small>
-    </div>
-
-    <div class="arrow">→</div>
-
-    <div class="arch-node alert-node">
-      Caregiver
-      <br>
-      <small>Alert</small>
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- HARDWARE -->
-<section id="hardware" class="section light-section">
-
-  <div class="section-heading">
-
-    <p class="eyebrow">04 • HARDWARE PLAN</p>
-
-    <h2>Planned physical components</h2>
-
-    <p>
-      These components can be used for the physical prototype.
-    </p>
-
-  </div>
-
-
-  <div class="hardware-grid">
-
-    <article class="hardware-card">
-      <span class="hardware-number">01</span>
-      <h3>ESP32 DevKit V1</h3>
-      <p>
-        Microcontroller used to collect sensor data and transmit
-        activity information.
-      </p>
-    </article>
-
-
-    <article class="hardware-card">
-      <span class="hardware-number">02</span>
-      <h3>HC-SR501 PIR</h3>
-      <p>
-        Detects movement inside the monitored environment.
-      </p>
-    </article>
-
-
-    <article class="hardware-card">
-      <span class="hardware-number">03</span>
-      <h3>MC-38 Reed Switch</h3>
-      <p>
-        Detects door opening and closing events.
-      </p>
-    </article>
-
-
-    <article class="hardware-card">
-      <span class="hardware-number">04</span>
-      <h3>LED Indicator</h3>
-      <p>
-        Provides a simple local indication for system status.
-      </p>
-    </article>
-
-  </div>
-
-</section>
-
-
-<!-- HISTORY -->
-<section class="section">
-
-  <div class="section-heading">
-
-    <p class="eyebrow">05 • ACTIVITY HISTORY</p>
-
-    <h2>Example activity record</h2>
-
-    <p>
-      Sample records showing how activity information can be
-      presented to a caregiver.
-    </p>
-
-  </div>
-
-
-  <div class="table-wrap">
-
-    <table>
-
-      <thead>
-
-        <tr>
-          <th>Time</th>
-          <th>Movement</th>
-          <th>Door</th>
-          <th>Appliance</th>
-          <th>State</th>
-        </tr>
-
-      </thead>
-
-
-      <tbody>
-
-        <tr>
-          <td>08:00</td>
-          <td>18</td>
-          <td>5</td>
-          <td>7</td>
-
-          <td>
-            <span class="pill normal-pill">
-              Normal
-            </span>
-          </td>
-        </tr>
-
-
-        <tr>
-          <td>10:00</td>
-          <td>15</td>
-          <td>4</td>
-          <td>5</td>
-
-          <td>
-            <span class="pill normal-pill">
-              Normal
-            </span>
-          </td>
-        </tr>
-
-
-        <tr>
-          <td>12:00</td>
-          <td>7</td>
-          <td>2</td>
-          <td>2</td>
-
-          <td>
-            <span class="pill low-pill">
-              Low Activity
-            </span>
-          </td>
-        </tr>
-
-
-        <tr>
-          <td>14:00</td>
-          <td>1</td>
-          <td>0</td>
-          <td>0</td>
-
-          <td>
-            <span class="pill alert-pill">
-              High Risk
-            </span>
-          </td>
-        </tr>
-
-      </tbody>
-
-    </table>
-
-  </div>
-
-</section>
-
-
-<!-- FINAL -->
-<section class="cta">
-
-  <p class="eyebrow">PROJECT DEVELOPMENT</p>
-
-  <h2>
-    Passive monitoring for activity-risk awareness.
-  </h2>
-
-  <p>
-    The current website demonstrates the activity calculation.
-    Hardware and machine-learning integration can be connected
-    in the next development phase.
-  </p>
-
-  <a class="btn primary" href="#monitor">
-    Open Activity Monitor
-  </a>
-
-</section>
-
-</main>
-
-
-<footer>
-
-  <strong>
-    PRJ_62 • ElderCare Activity Monitor
-  </strong>
-
-  <span>
-    Passive IoT • Python/ML • FastAPI
-  </span>
-
-</footer>
-
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 
 </body>
 </html>
