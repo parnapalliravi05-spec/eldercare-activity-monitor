@@ -1,36 +1,31 @@
 
 // =============================================
 // ELDERCARE ACTIVITY MONITOR
-// Complete Dashboard JavaScript
+// Complete Dashboard + Countdown + Alert Sound
 // =============================================
 
 const API_URL = "https://eldercare-activity-monitor-backend.onrender.com";
 
 const POLL_INTERVAL = 2000;
 const MAX_POINTS = 30;
-
-// =============================================
-// GLOBAL VARIABLES
-// =============================================
+const INACTIVITY_LIMIT = 10 * 60;
 
 let activityChart = null;
 let dailyChart = null;
 
 let previousMovement = null;
+let lastTimerMovement = null;
+
 let displayedAlerts = new Set();
 let soundedAlertIds = new Set();
-
 let eventCount = 0;
 
+// Audio variables
 let audioContext = null;
 let soundUnlocked = false;
-let pendingSoundAlert = false;
 
-// Inactivity countdown variables
-const INACTIVITY_LIMIT = 10 * 60;
-
+// Countdown variables
 let remainingSeconds = INACTIVITY_LIMIT;
-let lastTimerMovement = null;
 let timerStarted = false;
 let timerInterval = null;
 
@@ -45,18 +40,25 @@ function element(id) {
 
 
 // =============================================
-// ALERT SOUND SYSTEM
+// SOUND SYSTEM
 // =============================================
 
-function unlockAlertSound() {
-    if (soundUnlocked) return;
+function setSoundStatus(message) {
+    const status = element("soundStatus");
 
+    if (status) {
+        status.textContent = message;
+    }
+}
+
+
+function initializeAudio() {
     const AudioContextClass =
         window.AudioContext || window.webkitAudioContext;
 
     if (!AudioContextClass) {
-        console.warn("Browser audio is not supported.");
-        return;
+        setSoundStatus("Audio is not supported by this browser.");
+        return false;
     }
 
     try {
@@ -64,74 +66,129 @@ function unlockAlertSound() {
             audioContext = new AudioContextClass();
         }
 
-        audioContext.resume().then(() => {
-            soundUnlocked = true;
-
-            if (pendingSoundAlert) {
-                pendingSoundAlert = false;
-                playAlertSound();
-            }
-
-        }).catch(error => {
-            console.warn("Unable to enable alert sound:", error);
-        });
+        return true;
 
     } catch (error) {
-        console.warn("Audio initialization failed:", error);
+        console.error("Audio initialization error:", error);
+        setSoundStatus("Unable to initialize audio.");
+        return false;
     }
 }
 
 
-// Enable sound after the user's first interaction
-document.addEventListener("click", unlockAlertSound, { once: true });
-document.addEventListener("keydown", unlockAlertSound, { once: true });
-document.addEventListener("touchstart", unlockAlertSound, { once: true });
+// Play one beep
+function playBeep(frequency = 880, startDelay = 0) {
+    if (!audioContext || audioContext.state !== "running") {
+        return;
+    }
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    const startTime = audioContext.currentTime + startDelay;
+
+    oscillator.type = "sine";
+    oscillator.frequency.value = frequency;
+
+    gain.gain.setValueAtTime(0.0001, startTime);
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.25,
+        startTime + 0.03
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        startTime + 0.23
+    );
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start(startTime);
+    oscillator.stop(startTime + 0.24);
+}
 
 
 // Play three warning beeps
 function playAlertSound() {
-    if (!audioContext || !soundUnlocked) {
-        pendingSoundAlert = true;
+    if (!soundUnlocked || !audioContext) {
         return;
     }
 
-    if (audioContext.state === "suspended") {
-        audioContext.resume();
+    if (audioContext.state !== "running") {
+        audioContext.resume().then(() => {
+            playAlertSound();
+        }).catch(error => {
+            console.warn("Could not resume audio:", error);
+        });
+
+        return;
     }
 
-    const startTime = audioContext.currentTime;
+    playBeep(880, 0);
+    playBeep(880, 0.4);
+    playBeep(880, 0.8);
+}
 
-    for (let i = 0; i < 3; i++) {
-        const oscillator = audioContext.createOscillator();
-        const gain = audioContext.createGain();
 
-        oscillator.type = "sine";
-        oscillator.frequency.value = 880;
+// Enable sound button
+async function enableAlertSound() {
+    if (!initializeAudio()) {
+        return;
+    }
 
-        const beepStart = startTime + i * 0.35;
+    try {
+        await audioContext.resume();
 
-        gain.gain.setValueAtTime(0.0001, beepStart);
+        if (audioContext.state === "running") {
+            soundUnlocked = true;
 
-        gain.gain.exponentialRampToValueAtTime(
-            0.25,
-            beepStart + 0.03
-        );
+            setSoundStatus("Sound enabled successfully");
 
-        gain.gain.exponentialRampToValueAtTime(
-            0.0001,
-            beepStart + 0.22
-        );
+            const button = element("enableSound");
 
-        oscillator.connect(gain);
-        gain.connect(audioContext.destination);
+            if (button) {
+                button.textContent = "✓ Sound Enabled";
+                button.style.background = "#15803d";
+            }
 
-        oscillator.start(beepStart);
-        oscillator.stop(beepStart + 0.23);
+            // Play a short confirmation beep
+            playBeep(660, 0);
+        } else {
+            setSoundStatus("Please allow browser audio.");
+        }
+
+    } catch (error) {
+        console.error("Sound permission error:", error);
+        setSoundStatus("Unable to enable sound.");
     }
 }
 
 
-// Sound only for inactivity warning and critical alerts
+// Test sound button
+async function testAlertSound() {
+    if (!soundUnlocked) {
+        setSoundStatus("Click Enable Sound first.");
+        return;
+    }
+
+    if (!audioContext || audioContext.state !== "running") {
+        setSoundStatus("Audio is not active. Enable sound again.");
+        return;
+    }
+
+    setSoundStatus("Playing test sound...");
+
+    playAlertSound();
+
+    setTimeout(() => {
+        setSoundStatus("Test completed. Sound is ready.");
+    }, 1300);
+}
+
+
+// Play sound only for inactivity alerts
 function checkForSoundAlert(alert) {
     const title = alert.title || "";
 
@@ -139,15 +196,20 @@ function checkForSoundAlert(alert) {
         title === "10-Minute Inactivity Alert" ||
         title === "Prolonged Inactivity Alert";
 
-    if (!isInactivityAlert) return;
+    if (!isInactivityAlert) {
+        return;
+    }
 
-    const id = alert.id || title + (alert.timestamp || "");
+    const id = alert.id ||
+        title + (alert.timestamp || "");
 
-    if (soundedAlertIds.has(id)) return;
+    if (soundedAlertIds.has(id)) {
+        return;
+    }
 
     soundedAlertIds.add(id);
 
-    if (soundedAlertIds.size > 200) {
+    if (soundedAlertIds.size > 500) {
         soundedAlertIds.clear();
         soundedAlertIds.add(id);
     }
@@ -155,13 +217,13 @@ function checkForSoundAlert(alert) {
     if (soundUnlocked) {
         playAlertSound();
     } else {
-        pendingSoundAlert = true;
+        setSoundStatus("Alert received. Enable sound to hear alerts.");
     }
 }
 
 
 // =============================================
-// INACTIVITY COUNTDOWN TIMER
+// INACTIVITY COUNTDOWN
 // =============================================
 
 function updateTimerDisplay() {
@@ -211,27 +273,23 @@ function startInactivityTimer() {
         }
 
         updateTimerDisplay();
-
     }, 1000);
 }
 
 
 function resetInactivityTimer() {
     remainingSeconds = INACTIVITY_LIMIT;
-
     updateTimerDisplay();
 }
 
 
 function handleTimerMovement(movement) {
-
     if (!timerStarted) {
         lastTimerMovement = movement;
         startInactivityTimer();
         return;
     }
 
-    // Reset only when the movement counter increases
     if (
         lastTimerMovement !== null &&
         movement > lastTimerMovement
@@ -333,7 +391,6 @@ function initializeActivityChart() {
             scales: {
                 y: {
                     beginAtZero: true,
-
                     ticks: {
                         precision: 0
                     }
@@ -474,7 +531,6 @@ function addEvent(title, message, timestamp) {
     eventCount++;
 
     const event = document.createElement("div");
-
     event.className = "event-item";
 
     const safeTitle = escapeHTML(title || "Activity Event");
@@ -545,7 +601,6 @@ function updateDashboard(data) {
 
     const movement = Number(data.movement_count) || 0;
 
-    // Update countdown using live sensor movement
     handleTimerMovement(movement);
 
     if (
@@ -565,7 +620,6 @@ function updateDashboard(data) {
 // =============================================
 
 async function fetchLatestData() {
-
     try {
         const response = await fetch(API_URL + "/latest", {
             cache: "no-store"
@@ -578,13 +632,10 @@ async function fetchLatestData() {
         const data = await response.json();
 
         setConnection(true);
-
         updateDashboard(data);
 
     } catch (error) {
-
         console.error("Unable to fetch live data:", error);
-
         setConnection(false);
     }
 }
@@ -620,7 +671,6 @@ function initializeDailyChart() {
             scales: {
                 y: {
                     beginAtZero: true,
-
                     ticks: {
                         precision: 0
                     }
@@ -632,7 +682,6 @@ function initializeDailyChart() {
 
 
 async function loadDailyReport() {
-
     const report = element("dailyReport");
     const dateInput = element("reportDate");
 
@@ -648,7 +697,6 @@ async function loadDailyReport() {
     report.innerHTML = "<p>Generating report...</p>";
 
     try {
-
         const response = await fetch(
             API_URL + "/daily-report?date=" +
             encodeURIComponent(date),
@@ -696,7 +744,6 @@ async function loadDailyReport() {
         `;
 
         if (dailyChart && data.hourly_activity) {
-
             dailyChart.data.labels =
                 Object.keys(data.hourly_activity);
 
@@ -707,7 +754,6 @@ async function loadDailyReport() {
         }
 
     } catch (error) {
-
         console.error("Daily report error:", error);
 
         report.innerHTML = `
@@ -722,7 +768,6 @@ async function loadDailyReport() {
 // =============================================
 
 function calculateManualActivity() {
-
     const movement = Math.max(
         0,
         Number(element("manualMovement")?.value) || 0
@@ -746,11 +791,9 @@ function calculateManualActivity() {
     if (total >= 22) {
         score = 12;
         status = "NORMAL ACTIVITY";
-
     } else if (total >= 12) {
         score = 38;
         status = "LOW ACTIVITY";
-
     } else {
         score = 78;
         status = "HIGH INACTIVITY INDICATOR";
@@ -761,29 +804,16 @@ function calculateManualActivity() {
     if (result) {
         result.innerHTML = `
             <h3>Calculation Result</h3>
-
-            <p>Total activity events:
-                <strong>${total}</strong>
-            </p>
-
-            <p>Experimental indicator:
-                <strong>${score}%</strong>
-            </p>
-
-            <p>Status:
-                <strong>${status}</strong>
-            </p>
-
-            <small>
-                This is a demonstration rule, not a validated risk prediction.
-            </small>
+            <p>Total activity events: <strong>${total}</strong></p>
+            <p>Experimental indicator: <strong>${score}%</strong></p>
+            <p>Status: <strong>${status}</strong></p>
+            <small>This is a demonstration rule, not a validated risk prediction.</small>
         `;
     }
 }
 
 
 function resetManualActivity() {
-
     if (element("manualMovement")) {
         element("manualMovement").value = 0;
     }
@@ -810,7 +840,6 @@ function resetManualActivity() {
 // =============================================
 
 function setupNavigation() {
-
     document.querySelectorAll(".nav-link").forEach(link => {
 
         link.addEventListener("click", () => {
@@ -833,11 +862,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initializeActivityChart();
     initializeDailyChart();
-
     setupNavigation();
 
-    // Initialize countdown display
     updateTimerDisplay();
+
+    // Enable sound button
+    if (element("enableSound")) {
+        element("enableSound").addEventListener(
+            "click",
+            enableAlertSound
+        );
+    }
+
+    // Test sound button
+    if (element("testSound")) {
+        element("testSound").addEventListener(
+            "click",
+            testAlertSound
+        );
+    }
 
     const today = new Date();
 
@@ -872,7 +915,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (element("clear")) {
-
         element("clear").addEventListener("click", () => {
 
             if (element("events")) {
@@ -884,7 +926,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Start receiving live sensor data
     fetchLatestData();
 
     setInterval(fetchLatestData, POLL_INTERVAL);
