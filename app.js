@@ -1,33 +1,52 @@
 
+// =============================================
+// ELDERCARE ACTIVITY MONITOR
+// Complete Dashboard JavaScript
+// =============================================
+
 const API_URL = "https://eldercare-activity-monitor-backend.onrender.com";
 
 const POLL_INTERVAL = 2000;
 const MAX_POINTS = 30;
 
+// =============================================
+// GLOBAL VARIABLES
+// =============================================
+
 let activityChart = null;
 let dailyChart = null;
+
 let previousMovement = null;
 let displayedAlerts = new Set();
 let soundedAlertIds = new Set();
+
 let eventCount = 0;
 
 let audioContext = null;
 let soundUnlocked = false;
 let pendingSoundAlert = false;
 
+// Inactivity countdown variables
+const INACTIVITY_LIMIT = 10 * 60;
 
-// -------------------------------------
+let remainingSeconds = INACTIVITY_LIMIT;
+let lastTimerMovement = null;
+let timerStarted = false;
+let timerInterval = null;
+
+
+// =============================================
 // HTML ELEMENT HELPER
-// -------------------------------------
+// =============================================
 
 function element(id) {
     return document.getElementById(id);
 }
 
 
-// -------------------------------------
+// =============================================
 // ALERT SOUND SYSTEM
-// -------------------------------------
+// =============================================
 
 function unlockAlertSound() {
     if (soundUnlocked) return;
@@ -52,6 +71,7 @@ function unlockAlertSound() {
                 pendingSoundAlert = false;
                 playAlertSound();
             }
+
         }).catch(error => {
             console.warn("Unable to enable alert sound:", error);
         });
@@ -91,10 +111,12 @@ function playAlertSound() {
         const beepStart = startTime + i * 0.35;
 
         gain.gain.setValueAtTime(0.0001, beepStart);
+
         gain.gain.exponentialRampToValueAtTime(
             0.25,
             beepStart + 0.03
         );
+
         gain.gain.exponentialRampToValueAtTime(
             0.0001,
             beepStart + 0.22
@@ -112,6 +134,7 @@ function playAlertSound() {
 // Sound only for inactivity warning and critical alerts
 function checkForSoundAlert(alert) {
     const title = alert.title || "";
+
     const isInactivityAlert =
         title === "10-Minute Inactivity Alert" ||
         title === "Prolonged Inactivity Alert";
@@ -137,9 +160,92 @@ function checkForSoundAlert(alert) {
 }
 
 
-// -------------------------------------
+// =============================================
+// INACTIVITY COUNTDOWN TIMER
+// =============================================
+
+function updateTimerDisplay() {
+    const timer = element("countdownTimer");
+    const message = element("timerMessage");
+
+    if (!timer || !message) return;
+
+    if (!timerStarted) {
+        timer.textContent = "10:00";
+        message.textContent = "Waiting for sensor data...";
+        timer.style.color = "#2563eb";
+        return;
+    }
+
+    if (remainingSeconds <= 0) {
+        timer.textContent = "00:00";
+        message.textContent = "TIME UP — Inactivity detected";
+        timer.style.color = "#dc2626";
+        return;
+    }
+
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = remainingSeconds % 60;
+
+    timer.textContent =
+        String(minutes).padStart(2, "0") + ":" +
+        String(seconds).padStart(2, "0");
+
+    message.textContent = "Time remaining without movement";
+
+    timer.style.color =
+        remainingSeconds <= 60 ? "#dc2626" : "#2563eb";
+}
+
+
+function startInactivityTimer() {
+    if (timerInterval) return;
+
+    timerStarted = true;
+
+    updateTimerDisplay();
+
+    timerInterval = setInterval(() => {
+        if (remainingSeconds > 0) {
+            remainingSeconds--;
+        }
+
+        updateTimerDisplay();
+
+    }, 1000);
+}
+
+
+function resetInactivityTimer() {
+    remainingSeconds = INACTIVITY_LIMIT;
+
+    updateTimerDisplay();
+}
+
+
+function handleTimerMovement(movement) {
+
+    if (!timerStarted) {
+        lastTimerMovement = movement;
+        startInactivityTimer();
+        return;
+    }
+
+    // Reset only when the movement counter increases
+    if (
+        lastTimerMovement !== null &&
+        movement > lastTimerMovement
+    ) {
+        resetInactivityTimer();
+    }
+
+    lastTimerMovement = movement;
+}
+
+
+// =============================================
 // CONNECTION STATUS
-// -------------------------------------
+// =============================================
 
 function setConnection(connected) {
     const connection = element("connection");
@@ -177,9 +283,9 @@ function setConnection(connected) {
 }
 
 
-// -------------------------------------
+// =============================================
 // TIME FORMAT
-// -------------------------------------
+// =============================================
 
 function formatTime(value) {
     if (!value) return "Not available";
@@ -192,9 +298,9 @@ function formatTime(value) {
 }
 
 
-// -------------------------------------
+// =============================================
 // ACTIVITY CHART
-// -------------------------------------
+// =============================================
 
 function initializeActivityChart() {
     const canvas = element("activityChart");
@@ -203,8 +309,10 @@ function initializeActivityChart() {
 
     activityChart = new Chart(canvas, {
         type: "line",
+
         data: {
             labels: [],
+
             datasets: [{
                 label: "Movement Events",
                 data: [],
@@ -216,13 +324,16 @@ function initializeActivityChart() {
                 pointRadius: 3
             }]
         },
+
         options: {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
+
             scales: {
                 y: {
                     beginAtZero: true,
+
                     ticks: {
                         precision: 0
                     }
@@ -254,9 +365,9 @@ function updateActivityChart(movement) {
 }
 
 
-// -------------------------------------
+// =============================================
 // LIVE ALERT DISPLAY
-// -------------------------------------
+// =============================================
 
 function displayAlerts(alerts) {
     const container = element("alerts");
@@ -270,10 +381,12 @@ function displayAlerts(alerts) {
                 <p>Monitoring for activity.</p>
             </div>
         `;
+
         return;
     }
 
     container.innerHTML = alerts.map(alert => {
+
         const type = ["success", "warning", "critical", "info"]
             .includes(alert.type) ? alert.type : "info";
 
@@ -286,6 +399,7 @@ function displayAlerts(alerts) {
 
         const title = escapeHTML(alert.title || "Activity Alert");
         const message = escapeHTML(alert.message || "");
+
         const time = alert.timestamp
             ? formatTime(alert.timestamp)
             : "";
@@ -293,6 +407,7 @@ function displayAlerts(alerts) {
         return `
             <div class="alert-item ${type}">
                 <span class="alert-icon">${icon}</span>
+
                 <div>
                     <strong>${title}</strong>
                     <p>${message}</p>
@@ -300,9 +415,11 @@ function displayAlerts(alerts) {
                 </div>
             </div>
         `;
+
     }).join("");
 
     alerts.forEach(alert => {
+
         const id = alert.id || (
             (alert.title || "") + (alert.timestamp || "")
         );
@@ -317,7 +434,6 @@ function displayAlerts(alerts) {
             );
         }
 
-        // Check whether this alert needs a sound
         checkForSoundAlert(alert);
     });
 
@@ -327,9 +443,9 @@ function displayAlerts(alerts) {
 }
 
 
-// -------------------------------------
+// =============================================
 // SAFE TEXT DISPLAY
-// -------------------------------------
+// =============================================
 
 function escapeHTML(value) {
     return String(value).replace(/[&<>"']/g, character => ({
@@ -342,9 +458,9 @@ function escapeHTML(value) {
 }
 
 
-// -------------------------------------
+// =============================================
 // EVENT FEED
-// -------------------------------------
+// =============================================
 
 function addEvent(title, message, timestamp) {
     const container = element("events");
@@ -358,10 +474,12 @@ function addEvent(title, message, timestamp) {
     eventCount++;
 
     const event = document.createElement("div");
+
     event.className = "event-item";
 
-    const safeTitle = escapeHTML(title);
-    const safeMessage = escapeHTML(message);
+    const safeTitle = escapeHTML(title || "Activity Event");
+    const safeMessage = escapeHTML(message || "");
+
     const safeTime = escapeHTML(
         timestamp
             ? formatTime(timestamp)
@@ -373,6 +491,7 @@ function addEvent(title, message, timestamp) {
             <strong>${safeTitle}</strong>
             <p>${safeMessage}</p>
         </div>
+
         <small>${safeTime}</small>
     `;
 
@@ -384,11 +503,12 @@ function addEvent(title, message, timestamp) {
 }
 
 
-// -------------------------------------
+// =============================================
 // UPDATE DASHBOARD
-// -------------------------------------
+// =============================================
 
 function updateDashboard(data) {
+
     if (element("movement")) {
         element("movement").textContent =
             data.movement_count ?? 0;
@@ -425,6 +545,9 @@ function updateDashboard(data) {
 
     const movement = Number(data.movement_count) || 0;
 
+    // Update countdown using live sensor movement
+    handleTimerMovement(movement);
+
     if (
         previousMovement === null ||
         movement !== previousMovement
@@ -437,11 +560,12 @@ function updateDashboard(data) {
 }
 
 
-// -------------------------------------
+// =============================================
 // FETCH LIVE DATA
-// -------------------------------------
+// =============================================
 
 async function fetchLatestData() {
+
     try {
         const response = await fetch(API_URL + "/latest", {
             cache: "no-store"
@@ -454,18 +578,21 @@ async function fetchLatestData() {
         const data = await response.json();
 
         setConnection(true);
+
         updateDashboard(data);
 
     } catch (error) {
+
         console.error("Unable to fetch live data:", error);
+
         setConnection(false);
     }
 }
 
 
-// -------------------------------------
+// =============================================
 // DAILY REPORT
-// -------------------------------------
+// =============================================
 
 function initializeDailyChart() {
     const canvas = element("dailyChart");
@@ -474,8 +601,10 @@ function initializeDailyChart() {
 
     dailyChart = new Chart(canvas, {
         type: "bar",
+
         data: {
             labels: [],
+
             datasets: [{
                 label: "Movement Events",
                 data: [],
@@ -483,12 +612,15 @@ function initializeDailyChart() {
                 borderRadius: 5
             }]
         },
+
         options: {
             responsive: true,
             maintainAspectRatio: false,
+
             scales: {
                 y: {
                     beginAtZero: true,
+
                     ticks: {
                         precision: 0
                     }
@@ -500,6 +632,7 @@ function initializeDailyChart() {
 
 
 async function loadDailyReport() {
+
     const report = element("dailyReport");
     const dateInput = element("reportDate");
 
@@ -515,6 +648,7 @@ async function loadDailyReport() {
     report.innerHTML = "<p>Generating report...</p>";
 
     try {
+
         const response = await fetch(
             API_URL + "/daily-report?date=" +
             encodeURIComponent(date),
@@ -533,26 +667,36 @@ async function loadDailyReport() {
 
         report.innerHTML = `
             <h3>Daily Summary — ${escapeHTML(data.date)}</h3>
+
             <div class="report-stats">
                 <div>
                     <strong>${data.total_movement_events}</strong>
                     <p>Total movement events</p>
                 </div>
+
                 <div>
                     <strong>${data.number_of_movement_updates}</strong>
                     <p>Movement updates</p>
                 </div>
             </div>
-            <p>First movement: ${data.first_movement
-                ? formatTime(data.first_movement)
-                : "No movement recorded"}</p>
-            <p>Last movement: ${data.last_movement
-                ? formatTime(data.last_movement)
-                : "No movement recorded"}</p>
+
+            <p>First movement: ${
+                data.first_movement
+                    ? formatTime(data.first_movement)
+                    : "No movement recorded"
+            }</p>
+
+            <p>Last movement: ${
+                data.last_movement
+                    ? formatTime(data.last_movement)
+                    : "No movement recorded"
+            }</p>
+
             <small>${escapeHTML(data.note || "")}</small>
         `;
 
         if (dailyChart && data.hourly_activity) {
+
             dailyChart.data.labels =
                 Object.keys(data.hourly_activity);
 
@@ -563,6 +707,7 @@ async function loadDailyReport() {
         }
 
     } catch (error) {
+
         console.error("Daily report error:", error);
 
         report.innerHTML = `
@@ -572,21 +717,25 @@ async function loadDailyReport() {
 }
 
 
-// -------------------------------------
+// =============================================
 // MANUAL ACTIVITY CALCULATOR
-// -------------------------------------
+// =============================================
 
 function calculateManualActivity() {
+
     const movement = Math.max(
-        0, Number(element("manualMovement")?.value) || 0
+        0,
+        Number(element("manualMovement")?.value) || 0
     );
 
     const door = Math.max(
-        0, Number(element("manualDoor")?.value) || 0
+        0,
+        Number(element("manualDoor")?.value) || 0
     );
 
     const appliance = Math.max(
-        0, Number(element("manualAppliance")?.value) || 0
+        0,
+        Number(element("manualAppliance")?.value) || 0
     );
 
     const total = movement + door + appliance;
@@ -597,9 +746,11 @@ function calculateManualActivity() {
     if (total >= 22) {
         score = 12;
         status = "NORMAL ACTIVITY";
+
     } else if (total >= 12) {
         score = 38;
         status = "LOW ACTIVITY";
+
     } else {
         score = 78;
         status = "HIGH INACTIVITY INDICATOR";
@@ -610,16 +761,29 @@ function calculateManualActivity() {
     if (result) {
         result.innerHTML = `
             <h3>Calculation Result</h3>
-            <p>Total activity events: <strong>${total}</strong></p>
-            <p>Experimental indicator: <strong>${score}%</strong></p>
-            <p>Status: <strong>${status}</strong></p>
-            <small>This is a demonstration rule, not a validated risk prediction.</small>
+
+            <p>Total activity events:
+                <strong>${total}</strong>
+            </p>
+
+            <p>Experimental indicator:
+                <strong>${score}%</strong>
+            </p>
+
+            <p>Status:
+                <strong>${status}</strong>
+            </p>
+
+            <small>
+                This is a demonstration rule, not a validated risk prediction.
+            </small>
         `;
     }
 }
 
 
 function resetManualActivity() {
+
     if (element("manualMovement")) {
         element("manualMovement").value = 0;
     }
@@ -641,13 +805,16 @@ function resetManualActivity() {
 }
 
 
-// -------------------------------------
+// =============================================
 // NAVIGATION
-// -------------------------------------
+// =============================================
 
 function setupNavigation() {
+
     document.querySelectorAll(".nav-link").forEach(link => {
+
         link.addEventListener("click", () => {
+
             document.querySelectorAll(".nav-link").forEach(item => {
                 item.classList.remove("active");
             });
@@ -658,14 +825,19 @@ function setupNavigation() {
 }
 
 
-// -------------------------------------
+// =============================================
 // START APPLICATION
-// -------------------------------------
+// =============================================
 
 document.addEventListener("DOMContentLoaded", () => {
+
     initializeActivityChart();
     initializeDailyChart();
+
     setupNavigation();
+
+    // Initialize countdown display
+    updateTimerDisplay();
 
     const today = new Date();
 
@@ -700,7 +872,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (element("clear")) {
+
         element("clear").addEventListener("click", () => {
+
             if (element("events")) {
                 element("events").innerHTML =
                     '<p class="empty-events">Event feed cleared.</p>';
@@ -710,6 +884,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Start receiving live sensor data
     fetchLatestData();
 
     setInterval(fetchLatestData, POLL_INTERVAL);
