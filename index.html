@@ -8,12 +8,10 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-
 <body>
 
 <div class="dashboard">
 
-    <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-icon">E</div>
@@ -26,6 +24,8 @@
         <nav class="navigation">
             <a href="#overview" class="nav-link active">▦ Overview</a>
             <a href="#analytics" class="nav-link">▥ Analytics</a>
+            <a href="#alerts-section" class="nav-link">⚠ Alerts</a>
+            <a href="#reports" class="nav-link">▤ Daily Reports</a>
             <a href="#devices" class="nav-link">⌁ Devices</a>
             <a href="#manual" class="nav-link">▤ Manual Calculator</a>
         </nav>
@@ -36,10 +36,8 @@
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <main class="main-content">
 
-        <!-- HEADER -->
         <header class="topbar">
             <div>
                 <h1>Activity Monitoring Dashboard</h1>
@@ -72,7 +70,6 @@
                 <span class="live-label">● LIVE MONITORING</span>
             </div>
 
-            <!-- METRIC CARDS -->
             <div class="metrics-grid">
 
                 <div class="metric-card">
@@ -87,24 +84,6 @@
 
                 <div class="metric-card">
                     <div class="metric-top">
-                        <span>Door Events</span>
-                        <span class="metric-icon">🚪</span>
-                    </div>
-                    <h2 id="door">0</h2>
-                    <p>Door activity readings</p>
-                </div>
-
-                <div class="metric-card">
-                    <div class="metric-top">
-                        <span>Appliance Events</span>
-                        <span class="metric-icon">💡</span>
-                    </div>
-                    <h2 id="appliance">0</h2>
-                    <p>Appliance activity readings</p>
-                </div>
-
-                <div class="metric-card">
-                    <div class="metric-top">
                         <span>Activity Risk Indicator</span>
                         <span class="metric-icon">📊</span>
                     </div>
@@ -113,9 +92,30 @@
                     <div class="risk-track">
                         <div id="riskFill" class="risk-fill"></div>
                     </div>
-                    <small id="riskNote">Prototype activity indicator only</small>
+                    <small id="riskNote">Experimental activity indicator</small>
                 </div>
 
+            </div>
+        </section>
+
+        <!-- ALERTS -->
+        <section id="alerts-section" class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Alert Messages</h2>
+                    <p>Activity and system notifications</p>
+                </div>
+                <span class="manual-label">LIVE ALERTS</span>
+            </div>
+
+            <div id="alerts" class="alerts-container">
+                <div class="alert-item info">
+                    <span class="alert-icon">ℹ️</span>
+                    <div>
+                        <strong>Waiting for activity</strong>
+                        <p>Alerts will appear when the backend receives sensor data.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -139,6 +139,33 @@
             </div>
         </section>
 
+        <!-- DAILY REPORT -->
+        <section id="reports" class="dashboard-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Daily Activity Report</h2>
+                    <p>Movement summary for the selected day</p>
+                </div>
+            </div>
+
+            <div class="calculator-card">
+                <div class="calculator-actions">
+                    <label for="reportDate">Select date:</label>
+                    <input type="date" id="reportDate">
+                    <button type="button" id="loadReport">Generate Report</button>
+                </div>
+
+                <div id="dailyReport" class="manual-result">
+                    <h3>Daily Summary</h3>
+                    <p>Select a date and generate your activity report.</p>
+                </div>
+
+                <div class="chart-container" style="margin-top:25px">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+        </section>
+
         <!-- DEVICES -->
         <section id="devices" class="dashboard-section">
             <div class="section-heading">
@@ -149,7 +176,6 @@
             </div>
 
             <div class="device-grid">
-
                 <div class="device-card">
                     <div class="device-icon">📡</div>
                     <div>
@@ -170,7 +196,6 @@
                         </span>
                     </div>
                 </div>
-
             </div>
         </section>
 
@@ -179,66 +204,35 @@
             <div class="section-heading">
                 <div>
                     <h2>Manual Activity Calculator</h2>
-                    <p>Enter activity observations to calculate a separate prototype indicator.</p>
+                    <p>Enter activity observations for a separate prototype calculation.</p>
                 </div>
                 <span class="manual-label">MANUAL INPUT</span>
             </div>
 
             <div class="calculator-card">
-
                 <div class="calculator-intro">
                     <h3>Enter Activity Counts</h3>
-                    <p>
-                        Enter the number of events observed during your chosen
-                        monitoring period.
-                    </p>
+                    <p>Enter the number of events observed during your monitoring period.</p>
                 </div>
 
                 <div class="calculator-grid">
-
                     <div class="calculator-input">
                         <label for="manualMovement">Movement Events</label>
-                        <input
-                            type="number"
-                            id="manualMovement"
-                            min="0"
-                            value="0"
-                            placeholder="Enter movement count"
-                        >
+                        <input type="number" id="manualMovement" min="0" value="0">
                     </div>
-
                     <div class="calculator-input">
                         <label for="manualDoor">Door Events</label>
-                        <input
-                            type="number"
-                            id="manualDoor"
-                            min="0"
-                            value="0"
-                            placeholder="Enter door count"
-                        >
+                        <input type="number" id="manualDoor" min="0" value="0">
                     </div>
-
                     <div class="calculator-input">
                         <label for="manualAppliance">Appliance Events</label>
-                        <input
-                            type="number"
-                            id="manualAppliance"
-                            min="0"
-                            value="0"
-                            placeholder="Enter appliance count"
-                        >
+                        <input type="number" id="manualAppliance" min="0" value="0">
                     </div>
-
                 </div>
 
                 <div class="calculator-actions">
-                    <button type="button" id="calculateManual">
-                        Calculate Activity
-                    </button>
-
-                    <button type="button" id="resetManual" class="secondary-button">
-                        Reset
-                    </button>
+                    <button type="button" id="calculateManual">Calculate Activity</button>
+                    <button type="button" id="resetManual" class="secondary-button">Reset</button>
                 </div>
 
                 <div id="manualResult" class="manual-result" aria-live="polite">
@@ -247,11 +241,9 @@
                 </div>
 
                 <p class="disclaimer">
-                    Note: This is an experimental rule-based activity indicator
-                    for a student project. It is not a medical diagnosis or a
-                    validated measure of loneliness.
+                    Experimental rule-based activity indicator only. Not a medical
+                    diagnosis or validated loneliness assessment.
                 </p>
-
             </div>
         </section>
 
@@ -260,11 +252,9 @@
             <div class="section-heading">
                 <div>
                     <h2>Recent Activity Events</h2>
-                    <p>Latest updates received by the dashboard</p>
+                    <p>Latest dashboard updates</p>
                 </div>
-                <button type="button" id="clear" class="secondary-button">
-                    Clear Events
-                </button>
+                <button type="button" id="clear" class="secondary-button">Clear Events</button>
             </div>
 
             <div id="events" class="events-container">
@@ -281,6 +271,5 @@
 </div>
 
 <script src="app.js"></script>
-
 </body>
 </html>
