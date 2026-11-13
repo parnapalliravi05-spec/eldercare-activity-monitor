@@ -8,7 +8,7 @@ const API_URL = "https://eldercare-activity-monitor-backend.onrender.com";
 
 const POLL_INTERVAL = 2000;
 const MAX_POINTS = 30;
-const INACTIVITY_LIMIT = 10 * 60;
+const INACTIVITY_LIMIT = 1 * 60;
 
 let activityChart = null;
 let dailyChart = null;
