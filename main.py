@@ -19,7 +19,7 @@ app.add_middleware(
 # SETTINGS
 # ---------------------------------------
 
-WARNING_INACTIVITY_MINUTES = 30
+WARNING_INACTIVITY_MINUTES = 10
 CRITICAL_INACTIVITY_MINUTES = 60
 LOW_ACTIVITY_EVENTS_6H = 3
 
@@ -28,6 +28,11 @@ recent_alerts = deque(maxlen=100)
 
 previous_movement_count = None
 last_movement_time = None
+monitoring_start_time = None
+
+# Tracks whether an inactivity alert has already been sent
+inactivity_alert_level = None
+
 
 # ---------------------------------------
 # REQUEST MODEL
@@ -89,10 +94,17 @@ def create_movement_alert(delta, now):
 
 
 def generate_inactivity_alerts(now):
+    global inactivity_alert_level
+
     alerts = []
 
-    if last_movement_time is None:
+    # Use monitoring start time if no movement
+    # has ever been detected since startup.
+    reference_time = last_movement_time or monitoring_start_time
+
+    if reference_time is None:
         return [{
+            "id": "waiting-for-movement",
             "type": "info",
             "title": "Waiting for Movement",
             "message": "Waiting for the first movement detection.",
@@ -100,31 +112,44 @@ def generate_inactivity_alerts(now):
         }]
 
     inactive_minutes = (
-        now - last_movement_time
+        now - reference_time
     ).total_seconds() / 60
 
+    # Critical alert after 60 minutes
     if inactive_minutes >= CRITICAL_INACTIVITY_MINUTES:
-        alerts.append({
-            "type": "critical",
-            "title": "Prolonged Inactivity Alert",
-            "message": (
-                f"No movement detected for "
-                f"{int(inactive_minutes)} minutes."
-            ),
-            "timestamp": now.isoformat()
-        })
+        if inactivity_alert_level != "critical":
+            alert = {
+                "id": "inactivity-critical-" + reference_time.isoformat(),
+                "type": "critical",
+                "title": "Prolonged Inactivity Alert",
+                "message": (
+                    f"No movement detected for "
+                    f"{int(inactive_minutes)} minutes."
+                ),
+                "timestamp": now.isoformat()
+            }
 
+            recent_alerts.appendleft(alert)
+            inactivity_alert_level = "critical"
+
+    # Warning alert after 10 minutes
     elif inactive_minutes >= WARNING_INACTIVITY_MINUTES:
-        alerts.append({
-            "type": "warning",
-            "title": "Low Movement Alert",
-            "message": (
-                f"No movement detected for "
-                f"{int(inactive_minutes)} minutes."
-            ),
-            "timestamp": now.isoformat()
-        })
+        if inactivity_alert_level is None:
+            alert = {
+                "id": "inactivity-warning-" + reference_time.isoformat(),
+                "type": "warning",
+                "title": "10-Minute Inactivity Alert",
+                "message": (
+                    "No movement has been detected for 10 minutes. "
+                    "Please check the monitored activity."
+                ),
+                "timestamp": now.isoformat()
+            }
 
+            recent_alerts.appendleft(alert)
+            inactivity_alert_level = "warning"
+
+    # Existing six-hour low activity warning
     six_hour_events = get_recent_events(6)
 
     six_hour_movements = sum(
@@ -133,6 +158,7 @@ def generate_inactivity_alerts(now):
 
     if six_hour_movements < LOW_ACTIVITY_EVENTS_6H:
         alerts.append({
+            "id": "low-activity-six-hour",
             "type": "warning",
             "title": "Low Activity Alert",
             "message": (
@@ -209,9 +235,15 @@ def home():
 def receive_activity(data: ActivityData):
     global previous_movement_count
     global last_movement_time
+    global monitoring_start_time
+    global inactivity_alert_level
 
     now = now_utc()
     movement = data.movement_count
+
+    # Start monitoring when the first ESP32 data arrives
+    if monitoring_start_time is None:
+        monitoring_start_time = now
 
     if previous_movement_count is None:
         movement_delta = movement
@@ -227,13 +259,15 @@ def receive_activity(data: ActivityData):
     if movement_delta > 0:
         last_movement_time = now
 
+        # Allow a fresh inactivity alert after movement resumes
+        inactivity_alert_level = None
+
         activity_history.append({
             "timestamp": now.isoformat(),
             "movement_delta": movement_delta,
             "movement_total": movement
         })
 
-        # Immediately create a movement alert
         create_movement_alert(movement_delta, now)
 
     total = (
