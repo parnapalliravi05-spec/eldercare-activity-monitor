@@ -15,33 +15,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -----------------------------------
+# ---------------------------------------
 # SETTINGS
-# -----------------------------------
+# ---------------------------------------
 
 WARNING_INACTIVITY_MINUTES = 30
 CRITICAL_INACTIVITY_MINUTES = 60
 LOW_ACTIVITY_EVENTS_6H = 3
 
-# Keeps recent history in memory.
-# History is cleared if the Render service restarts.
-activity_history = deque(maxlen=10000)
+activity_history = deque(maxlen=20000)
+recent_alerts = deque(maxlen=100)
 
 previous_movement_count = None
 last_movement_time = None
 
-# -----------------------------------
+# ---------------------------------------
 # REQUEST MODEL
-# -----------------------------------
+# ---------------------------------------
 
 class ActivityData(BaseModel):
     movement_count: int = Field(default=0, ge=0)
     door_events: int = Field(default=0, ge=0)
     appliance_events: int = Field(default=0, ge=0)
 
-# -----------------------------------
-# INITIAL DATA
-# -----------------------------------
+
+# ---------------------------------------
+# LATEST DATA
+# ---------------------------------------
 
 latest_data = {
     "movement_count": 0,
@@ -55,42 +55,49 @@ latest_data = {
     "updated_at": None
 }
 
-# -----------------------------------
-# HELPER: TIME
-# -----------------------------------
 
-def current_time():
+def now_utc():
     return datetime.now(timezone.utc)
 
-def parse_time(value):
-    return datetime.fromisoformat(value)
-
-# -----------------------------------
-# HELPER: MOVEMENT HISTORY
-# -----------------------------------
 
 def get_recent_events(hours=24):
-    cutoff = current_time() - timedelta(hours=hours)
+    cutoff = now_utc() - timedelta(hours=hours)
 
     return [
         event for event in activity_history
-        if parse_time(event["timestamp"]) >= cutoff
+        if datetime.fromisoformat(event["timestamp"]) >= cutoff
     ]
 
-# -----------------------------------
-# HELPER: ALERT GENERATION
-# -----------------------------------
 
-def generate_alerts(now, movement_events):
+# ---------------------------------------
+# ACTIVITY ALERTS
+# ---------------------------------------
+
+def create_movement_alert(delta, now):
+    alert = {
+        "id": now.isoformat(),
+        "type": "success",
+        "title": "Movement Detected",
+        "message": (
+            f"{delta} new movement event(s) detected "
+            "by the PIR sensor."
+        ),
+        "timestamp": now.isoformat()
+    }
+
+    recent_alerts.appendleft(alert)
+
+
+def generate_inactivity_alerts(now):
     alerts = []
 
     if last_movement_time is None:
-        alerts.append({
+        return [{
             "type": "info",
             "title": "Waiting for Movement",
-            "message": "Waiting for the first movement detection."
-        })
-        return alerts
+            "message": "Waiting for the first movement detection.",
+            "timestamp": now.isoformat()
+        }]
 
     inactive_minutes = (
         now - last_movement_time
@@ -103,7 +110,8 @@ def generate_alerts(now, movement_events):
             "message": (
                 f"No movement detected for "
                 f"{int(inactive_minutes)} minutes."
-            )
+            ),
+            "timestamp": now.isoformat()
         })
 
     elif inactive_minutes >= WARNING_INACTIVITY_MINUTES:
@@ -113,33 +121,33 @@ def generate_alerts(now, movement_events):
             "message": (
                 f"No movement detected for "
                 f"{int(inactive_minutes)} minutes."
-            )
+            ),
+            "timestamp": now.isoformat()
         })
 
-    events_6h = get_recent_events(6)
+    six_hour_events = get_recent_events(6)
 
-    if len(events_6h) < LOW_ACTIVITY_EVENTS_6H:
+    six_hour_movements = sum(
+        event["movement_delta"] for event in six_hour_events
+    )
+
+    if six_hour_movements < LOW_ACTIVITY_EVENTS_6H:
         alerts.append({
             "type": "warning",
             "title": "Low Activity Alert",
             "message": (
                 "Movement activity is below the configured "
                 "six-hour threshold."
-            )
-        })
-
-    if not alerts:
-        alerts.append({
-            "type": "success",
-            "title": "Activity Normal",
-            "message": "Recent movement activity has been detected."
+            ),
+            "timestamp": now.isoformat()
         })
 
     return alerts
 
-# -----------------------------------
-# HELPER: EXPERIMENTAL RISK INDICATOR
-# -----------------------------------
+
+# ---------------------------------------
+# EXPERIMENTAL ACTIVITY RISK INDICATOR
+# ---------------------------------------
 
 def calculate_risk(now):
     if last_movement_time is None:
@@ -149,9 +157,10 @@ def calculate_risk(now):
         now - last_movement_time
     ).total_seconds() / 60
 
-    recent_events = get_recent_events(24)
+    events = get_recent_events(24)
+
     daily_movements = sum(
-        event["movement_delta"] for event in recent_events
+        event["movement_delta"] for event in events
     )
 
     inactivity_score = min(
@@ -179,9 +188,10 @@ def calculate_risk(now):
 
     return score, status
 
-# -----------------------------------
+
+# ---------------------------------------
 # HOME
-# -----------------------------------
+# ---------------------------------------
 
 @app.get("/")
 def home():
@@ -190,17 +200,17 @@ def home():
         "status": "online"
     }
 
-# -----------------------------------
-# RECEIVE ESP32 ACTIVITY
-# -----------------------------------
+
+# ---------------------------------------
+# RECEIVE ESP32 DATA
+# ---------------------------------------
 
 @app.post("/activity")
 def receive_activity(data: ActivityData):
     global previous_movement_count
     global last_movement_time
 
-    now = current_time()
-
+    now = now_utc()
     movement = data.movement_count
 
     if previous_movement_count is None:
@@ -208,11 +218,12 @@ def receive_activity(data: ActivityData):
     elif movement >= previous_movement_count:
         movement_delta = movement - previous_movement_count
     else:
-        # Handles an ESP32 counter reset.
+        # Handles ESP32 counter reset
         movement_delta = movement
 
     previous_movement_count = movement
 
+    # Record each new movement detection
     if movement_delta > 0:
         last_movement_time = now
 
@@ -222,6 +233,9 @@ def receive_activity(data: ActivityData):
             "movement_total": movement
         })
 
+        # Immediately create a movement alert
+        create_movement_alert(movement_delta, now)
+
     total = (
         movement
         + data.door_events
@@ -230,9 +244,11 @@ def receive_activity(data: ActivityData):
 
     risk_score, status = calculate_risk(now)
 
-    alerts = generate_alerts(
-        now,
-        get_recent_events(24)
+    inactivity_alerts = generate_inactivity_alerts(now)
+
+    all_alerts = (
+        list(recent_alerts)[:20]
+        + inactivity_alerts
     )
 
     latest_data.update({
@@ -246,41 +262,44 @@ def receive_activity(data: ActivityData):
             last_movement_time.isoformat()
             if last_movement_time else None
         ),
-        "alerts": alerts,
+        "alerts": all_alerts,
         "updated_at": now.isoformat()
     })
 
     return latest_data
 
-# -----------------------------------
-# LATEST DATA
-# -----------------------------------
+
+# ---------------------------------------
+# LATEST DATA FOR WEBSITE
+# ---------------------------------------
 
 @app.get("/latest")
 def get_latest_activity():
-    now = current_time()
+    now = now_utc()
 
     risk_score, status = calculate_risk(now)
 
     latest_data["risk_score"] = risk_score
     latest_data["status"] = status
-    latest_data["alerts"] = generate_alerts(
-        now,
-        get_recent_events(24)
+
+    inactivity_alerts = generate_inactivity_alerts(now)
+
+    latest_data["alerts"] = (
+        list(recent_alerts)[:20]
+        + inactivity_alerts
     )
 
     return latest_data
 
-# -----------------------------------
+
+# ---------------------------------------
 # MOVEMENT HISTORY
-# -----------------------------------
+# ---------------------------------------
 
 @app.get("/history")
 def get_history(hours: int = 24):
     if hours < 1 or hours > 168:
-        return {
-            "error": "Hours must be between 1 and 168."
-        }
+        return {"error": "Hours must be between 1 and 168."}
 
     events = get_recent_events(hours)
 
@@ -293,23 +312,22 @@ def get_history(hours: int = 24):
         "history": list(events)
     }
 
-# -----------------------------------
+
+# ---------------------------------------
 # DAILY ACTIVITY REPORT
-# -----------------------------------
+# ---------------------------------------
 
 @app.get("/daily-report")
 def daily_report(date: Optional[str] = None):
     if date is None:
-        selected_date = current_time().date()
+        selected_date = now_utc().date()
     else:
         try:
             selected_date = datetime.strptime(
                 date, "%Y-%m-%d"
             ).date()
         except ValueError:
-            return {
-                "error": "Use date format YYYY-MM-DD."
-            }
+            return {"error": "Use date format YYYY-MM-DD."}
 
     start = datetime(
         selected_date.year,
@@ -322,15 +340,23 @@ def daily_report(date: Optional[str] = None):
 
     events = [
         event for event in activity_history
-        if start <= parse_time(event["timestamp"]) < end
+        if start <= datetime.fromisoformat(
+            event["timestamp"]
+        ) < end
     ]
 
-    hourly = {f"{hour:02d}:00": 0 for hour in range(24)}
+    hourly = {
+        f"{hour:02d}:00": 0
+        for hour in range(24)
+    }
 
     for event in events:
-        event_time = parse_time(event["timestamp"])
-        hour = event_time.hour
-        hourly[f"{hour:02d}:00"] += event["movement_delta"]
+        event_time = datetime.fromisoformat(
+            event["timestamp"]
+        )
+        hourly[f"{event_time.hour:02d}:00"] += (
+            event["movement_delta"]
+        )
 
     return {
         "date": selected_date.isoformat(),
