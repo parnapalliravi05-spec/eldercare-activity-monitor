@@ -1,81 +1,100 @@
 
 const API_URL = "https://eldercare-activity-monitor-backend.onrender.com";
-const POLL_MS = 2000;
+
+const POLL_INTERVAL = 2000;
 const MAX_POINTS = 30;
 
-// -------------------------------
-// DASHBOARD ELEMENTS
-// -------------------------------
-
-const movementElement = document.getElementById("movement");
-const doorElement = document.getElementById("door");
-const applianceElement = document.getElementById("appliance");
-const riskElement = document.getElementById("risk");
-const riskStatusElement = document.getElementById("riskStatus");
-const riskFillElement = document.getElementById("riskFill");
-const riskNoteElement = document.getElementById("riskNote");
-
-const connectionElement = document.getElementById("connection");
-const updatedElement = document.getElementById("updated");
-const pirElement = document.getElementById("pir");
-const backendDot = document.getElementById("backendDot");
-const backendText = document.getElementById("backendText");
-
-const eventsElement = document.getElementById("events");
-const clearButton = document.getElementById("clear");
-const movementDeltaElement = document.getElementById("movementDelta");
-
-// -------------------------------
-// CHART SETUP
-// -------------------------------
-
-const labels = [];
-const movementPoints = [];
-
 let activityChart = null;
+let dailyChart = null;
 let previousMovement = null;
+let displayedAlerts = new Set();
 let eventCount = 0;
 
-const chartCanvas = document.getElementById("activityChart");
+// -------------------------------------
+// HTML ELEMENT HELPER
+// -------------------------------------
 
-if (chartCanvas && window.Chart) {
-    activityChart = new Chart(chartCanvas, {
+function element(id) {
+    return document.getElementById(id);
+}
+
+// -------------------------------------
+// CONNECTION STATUS
+// -------------------------------------
+
+function setConnection(connected) {
+    const connection = element("connection");
+    const backendText = element("backendText");
+    const backendDot = element("backendDot");
+    const pir = element("pir");
+
+    if (connection) {
+        connection.textContent = connected ? "● Connected" : "● Disconnected";
+        connection.className = connected
+            ? "status-badge connected"
+            : "status-badge disconnected";
+    }
+
+    if (backendText) {
+        backendText.textContent = connected ? "Connected" : "Disconnected";
+    }
+
+    if (backendDot) {
+        backendDot.className = connected ? "status-dot good" : "status-dot bad";
+    }
+
+    if (pir) {
+        pir.textContent = connected ? "Receiving sensor data" : "Waiting for sensor";
+    }
+}
+
+// -------------------------------------
+// TIME FORMAT
+// -------------------------------------
+
+function formatTime(value) {
+    if (!value) return "Not available";
+
+    return new Date(value).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
+}
+
+// -------------------------------------
+// ACTIVITY CHART
+// -------------------------------------
+
+function initializeActivityChart() {
+    const canvas = element("activityChart");
+
+    if (!canvas || typeof Chart === "undefined") return;
+
+    activityChart = new Chart(canvas, {
         type: "line",
         data: {
-            labels: labels,
+            labels: [],
             datasets: [{
                 label: "Movement Events",
-                data: movementPoints,
+                data: [],
                 borderColor: "#4776e6",
-                backgroundColor: "rgba(71, 118, 230, 0.12)",
-                borderWidth: 3,
+                backgroundColor: "rgba(71,118,230,0.12)",
                 fill: true,
                 tension: 0.35,
-                pointRadius: 3,
-                pointHoverRadius: 6
+                borderWidth: 3,
+                pointRadius: 3
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
-            plugins: {
-                legend: {
-                    display: true
-                }
-            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: "Movement Count"
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: "Time"
+                    ticks: {
+                        precision: 0
                     }
                 }
             }
@@ -83,350 +102,436 @@ if (chartCanvas && window.Chart) {
     });
 }
 
-// -------------------------------
-// HELPER FUNCTIONS
-// -------------------------------
+function updateActivityChart(movement) {
+    if (!activityChart) return;
 
-function getNumber(data, possibleNames) {
-    for (const name of possibleNames) {
-        const value = Number(data?.[name]);
+    const time = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 
-        if (data?.[name] !== undefined && Number.isFinite(value)) {
-            return value;
+    activityChart.data.labels.push(time);
+    activityChart.data.datasets[0].data.push(movement);
+
+    if (activityChart.data.labels.length > MAX_POINTS) {
+        activityChart.data.labels.shift();
+        activityChart.data.datasets[0].data.shift();
+    }
+
+    activityChart.update("none");
+}
+
+// -------------------------------------
+// LIVE ALERT DISPLAY
+// -------------------------------------
+
+function displayAlerts(alerts) {
+    const container = element("alerts");
+
+    if (!container) return;
+
+    if (!Array.isArray(alerts) || alerts.length === 0) {
+        container.innerHTML = `
+            <div class="alert-item info">
+                <strong>No current alerts</strong>
+                <p>Monitoring for activity.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = alerts.map(alert => {
+        const type = ["success", "warning", "critical", "info"]
+            .includes(alert.type) ? alert.type : "info";
+
+        const icon = {
+            success: "🚶",
+            warning: "⚠️",
+            critical: "🚨",
+            info: "ℹ️"
+        }[type];
+
+        const title = escapeHTML(alert.title || "Activity Alert");
+        const message = escapeHTML(alert.message || "");
+        const time = alert.timestamp ? formatTime(alert.timestamp) : "";
+
+        return `
+            <div class="alert-item ${type}">
+                <span class="alert-icon">${icon}</span>
+                <div>
+                    <strong>${title}</strong>
+                    <p>${message}</p>
+                    <small>${time}</small>
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    // Add only newly received alerts to the event feed.
+    alerts.forEach(alert => {
+        const id = alert.id || (
+            (alert.title || "") + (alert.timestamp || "")
+        );
+
+        if (!displayedAlerts.has(id)) {
+            displayedAlerts.add(id);
+            addEvent(alert.title, alert.message, alert.timestamp);
         }
-    }
+    });
 
-    return 0;
-}
-
-function updateConnection(isConnected) {
-    if (connectionElement) {
-        connectionElement.textContent = isConnected
-            ? "● Connected"
-            : "● Disconnected";
-
-        connectionElement.className = isConnected
-            ? "status-badge good"
-            : "status-badge";
-    }
-
-    if (backendDot) {
-        backendDot.className = isConnected
-            ? "status-dot good"
-            : "status-dot";
-    }
-
-    if (backendText) {
-        backendText.textContent = isConnected
-            ? "Backend Connected"
-            : "Backend Disconnected";
+    // Prevent unlimited browser memory growth.
+    if (displayedAlerts.size > 500) {
+        displayedAlerts.clear();
     }
 }
 
-function addEvent(message) {
-    if (!eventsElement) return;
+// -------------------------------------
+// SAFE TEXT DISPLAY
+// -------------------------------------
+
+function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    })[character]);
+}
+
+// -------------------------------------
+// EVENT FEED
+// -------------------------------------
+
+function addEvent(title, message, timestamp) {
+    const container = element("events");
+
+    if (!container) return;
 
     if (eventCount === 0) {
-        eventsElement.innerHTML = "";
+        container.innerHTML = "";
     }
+
+    eventCount++;
 
     const event = document.createElement("div");
     event.className = "event-item";
 
-    const time = new Date().toLocaleTimeString();
+    const safeTitle = escapeHTML(title);
+    const safeMessage = escapeHTML(message);
+    const safeTime = escapeHTML(
+        timestamp ? formatTime(timestamp) : formatTime(new Date())
+    );
 
-    const messageElement = document.createElement("span");
-    messageElement.textContent = message;
+    event.innerHTML = `
+        <div>
+            <strong>${safeTitle}</strong>
+            <p>${safeMessage}</p>
+        </div>
+        <small>${safeTime}</small>
+    `;
 
-    const timeElement = document.createElement("small");
-    timeElement.textContent = time;
+    container.prepend(event);
 
-    event.appendChild(messageElement);
-    event.appendChild(timeElement);
-
-    eventsElement.prepend(event);
-
-    eventCount++;
-
-    while (eventsElement.children.length > 20) {
-        eventsElement.removeChild(eventsElement.lastChild);
+    while (container.children.length > 30) {
+        container.removeChild(container.lastChild);
     }
 }
 
-// -------------------------------
-// LIVE RISK DISPLAY
-// -------------------------------
-
-function updateRiskDisplay(data) {
-    const suppliedRisk = data.risk_score ?? data.riskScore ?? data.risk;
-
-    const score = Number(suppliedRisk);
-
-    if (suppliedRisk !== undefined && Number.isFinite(score)) {
-        const safeScore = Math.max(0, Math.min(100, score));
-
-        if (riskElement) {
-            riskElement.textContent = Math.round(safeScore) + "%";
-        }
-
-        if (riskFillElement) {
-            riskFillElement.style.width = safeScore + "%";
-        }
-
-        const suppliedStatus = data.risk_status ?? data.riskStatus;
-
-        if (riskStatusElement) {
-            riskStatusElement.textContent =
-                suppliedStatus || "Prototype activity indicator";
-        }
-    } else {
-        if (riskElement) {
-            riskElement.textContent = "--";
-        }
-
-        if (riskStatusElement) {
-            riskStatusElement.textContent =
-                "Risk score not supplied by backend";
-        }
-
-        if (riskFillElement) {
-            riskFillElement.style.width = "0%";
-        }
-    }
-
-    if (riskNoteElement) {
-        riskNoteElement.textContent =
-            "Experimental activity indicator — not a diagnosis.";
-    }
-}
-
-// -------------------------------
-// UPDATE LIVE DASHBOARD
-// -------------------------------
+// -------------------------------------
+// UPDATE DASHBOARD
+// -------------------------------------
 
 function updateDashboard(data) {
-    const movement = getNumber(data, [
-        "movement_count",
-        "movement",
-        "movement_events"
-    ]);
-
-    const door = getNumber(data, [
-        "door_events",
-        "door_count",
-        "door"
-    ]);
-
-    const appliance = getNumber(data, [
-        "appliance_events",
-        "appliance_count",
-        "appliance"
-    ]);
-
-    if (movementElement) movementElement.textContent = movement;
-    if (doorElement) doorElement.textContent = door;
-    if (applianceElement) applianceElement.textContent = appliance;
-
-    if (pirElement) {
-        pirElement.textContent = "Receiving activity data";
+    if (element("movement")) {
+        element("movement").textContent = data.movement_count ?? 0;
     }
 
-    if (movementDeltaElement) {
-        if (previousMovement === null) {
-            movementDeltaElement.textContent = "First reading received";
-        } else if (movement > previousMovement) {
-            movementDeltaElement.textContent =
-                "+" + (movement - previousMovement) + " new movement event(s)";
-        } else {
-            movementDeltaElement.textContent = "No new movement events";
-        }
+    if (element("risk")) {
+        element("risk").textContent = (data.risk_score ?? 0) + "%";
     }
 
-    if (previousMovement !== null && movement > previousMovement) {
-        addEvent(
-            "Movement detected. Total movement count: " + movement
-        );
+    if (element("riskStatus")) {
+        element("riskStatus").textContent = data.status || "Monitoring";
     }
 
-    previousMovement = movement;
-
-    updateRiskDisplay(data);
-
-    // Update chart
-    const time = new Date().toLocaleTimeString();
-
-    if (activityChart) {
-        labels.push(time);
-        movementPoints.push(movement);
-
-        if (labels.length > MAX_POINTS) {
-            labels.shift();
-            movementPoints.shift();
-        }
-
-        activityChart.update("none");
+    if (element("riskFill")) {
+        const score = Math.max(0, Math.min(100, Number(data.risk_score) || 0));
+        element("riskFill").style.width = score + "%";
     }
 
-    if (updatedElement) {
-        updatedElement.textContent =
-            "Last updated: " + new Date().toLocaleTimeString();
+    if (element("riskNote")) {
+        element("riskNote").textContent =
+            "Experimental activity indicator — not a diagnosis.";
     }
+
+    if (element("updated")) {
+        element("updated").textContent =
+            "Last updated: " + formatTime(data.updated_at);
+    }
+
+    const movement = Number(data.movement_count) || 0;
+
+    if (previousMovement === null || movement !== previousMovement) {
+        updateActivityChart(movement);
+        previousMovement = movement;
+    }
+
+    displayAlerts(data.alerts || []);
 }
 
-// -------------------------------
-// FETCH LIVE BACKEND DATA
-// -------------------------------
+// -------------------------------------
+// FETCH LIVE DATA
+// -------------------------------------
 
-async function fetchLiveData() {
+async function fetchLatestData() {
     try {
-        const response = await fetch(
-            API_URL + "/latest",
-            { cache: "no-store" }
-        );
+        const response = await fetch(API_URL + "/latest", {
+            cache: "no-store"
+        });
 
         if (!response.ok) {
-            throw new Error("Backend returned " + response.status);
+            throw new Error("Backend response error");
         }
 
         const data = await response.json();
 
+        setConnection(true);
         updateDashboard(data);
-        updateConnection(true);
-
-        console.log("Live backend data received:", data);
 
     } catch (error) {
-        console.error("Backend connection error:", error);
-
-        updateConnection(false);
-
-        if (pirElement) {
-            pirElement.textContent = "Waiting for sensor data";
-        }
-
-        if (updatedElement) {
-            updatedElement.textContent = "Unable to fetch latest data";
-        }
+        console.error("Unable to fetch live data:", error);
+        setConnection(false);
     }
 }
 
-// -------------------------------
-// MANUAL ACTIVITY CALCULATOR
-// -------------------------------
+// -------------------------------------
+// DAILY REPORT
+// -------------------------------------
 
-const manualMovement = document.getElementById("manualMovement");
-const manualDoor = document.getElementById("manualDoor");
-const manualAppliance = document.getElementById("manualAppliance");
+function initializeDailyChart() {
+    const canvas = element("dailyChart");
 
-const calculateButton = document.getElementById("calculateManual");
-const resetButton = document.getElementById("resetManual");
-const manualResult = document.getElementById("manualResult");
+    if (!canvas || typeof Chart === "undefined") return;
 
-function calculateManualActivity() {
-    const movement = Number(manualMovement?.value);
-    const door = Number(manualDoor?.value);
-    const appliance = Number(manualAppliance?.value);
+    dailyChart = new Chart(canvas, {
+        type: "bar",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "Movement Events",
+                data: [],
+                backgroundColor: "#4776e6",
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+}
 
-    const values = [movement, door, appliance];
+async function loadDailyReport() {
+    const report = element("dailyReport");
+    const dateInput = element("reportDate");
 
-    if (
-        values.some(value =>
-            !Number.isFinite(value) || value < 0 || !Number.isInteger(value)
-        )
-    ) {
-        manualResult.innerHTML = `
-            <h3>Invalid Input</h3>
-            <p>Please enter valid whole numbers greater than or equal to zero.</p>
-        `;
+    if (!report || !dateInput) return;
+
+    const date = dateInput.value;
+
+    if (!date) {
+        report.textContent = "Please select a date.";
         return;
     }
+
+    report.innerHTML = "<p>Generating report...</p>";
+
+    try {
+        const response = await fetch(
+            API_URL + "/daily-report?date=" + encodeURIComponent(date),
+            { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+            throw new Error("Report request failed");
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        report.innerHTML = `
+            <h3>Daily Summary — ${escapeHTML(data.date)}</h3>
+            <div class="report-stats">
+                <div>
+                    <strong>${data.total_movement_events}</strong>
+                    <p>Total movement events</p>
+                </div>
+                <div>
+                    <strong>${data.number_of_movement_updates}</strong>
+                    <p>Movement updates</p>
+                </div>
+            </div>
+            <p>First movement: ${data.first_movement
+                ? formatTime(data.first_movement)
+                : "No movement recorded"}</p>
+            <p>Last movement: ${data.last_movement
+                ? formatTime(data.last_movement)
+                : "No movement recorded"}</p>
+            <small>${escapeHTML(data.note || "")}</small>
+        `;
+
+        if (dailyChart && data.hourly_activity) {
+            dailyChart.data.labels = Object.keys(data.hourly_activity);
+            dailyChart.data.datasets[0].data =
+                Object.values(data.hourly_activity);
+            dailyChart.update();
+        }
+
+    } catch (error) {
+        console.error("Daily report error:", error);
+        report.innerHTML = `
+            <p>Unable to load the daily report. Please try again.</p>
+        `;
+    }
+}
+
+// -------------------------------------
+// MANUAL ACTIVITY CALCULATOR
+// -------------------------------------
+
+function calculateManualActivity() {
+    const movement = Math.max(
+        0, Number(element("manualMovement")?.value) || 0
+    );
+
+    const door = Math.max(
+        0, Number(element("manualDoor")?.value) || 0
+    );
+
+    const appliance = Math.max(
+        0, Number(element("manualAppliance")?.value) || 0
+    );
 
     const total = movement + door + appliance;
 
     let score;
     let status;
-    let description;
 
-    // Demonstration thresholds for the academic prototype.
     if (total >= 22) {
         score = 12;
-        status = "Normal Activity";
-        description = "The entered activity count is relatively high.";
+        status = "NORMAL ACTIVITY";
     } else if (total >= 12) {
         score = 38;
-        status = "Low Activity";
-        description = "The entered activity count is moderate.";
+        status = "LOW ACTIVITY";
     } else {
         score = 78;
-        status = "High Inactivity Indicator";
-        description = "The entered activity count is relatively low.";
+        status = "HIGH INACTIVITY INDICATOR";
     }
 
-    manualResult.innerHTML = `
-        <h3>Manual Calculation Result</h3>
+    const result = element("manualResult");
 
-        <div class="manual-result-grid">
-            <div>
-                <span>Total Events</span>
-                <strong>${total}</strong>
-            </div>
-
-            <div>
-                <span>Prototype Indicator</span>
-                <strong>${score}%</strong>
-            </div>
-        </div>
-
-        <h3>${status}</h3>
-        <p>${description}</p>
-
-        <small>
-            This result is based only on the entered counts and
-            demonstration thresholds. It is not a medical or
-            validated loneliness-risk assessment.
-        </small>
-    `;
-
-    addEvent("Manual calculator used. Total entered events: " + total);
-}
-
-if (calculateButton) {
-    calculateButton.addEventListener("click", calculateManualActivity);
-}
-
-if (resetButton) {
-    resetButton.addEventListener("click", () => {
-        if (manualMovement) manualMovement.value = 0;
-        if (manualDoor) manualDoor.value = 0;
-        if (manualAppliance) manualAppliance.value = 0;
-
-        if (manualResult) {
-            manualResult.innerHTML = `
-                <h3>Calculation Result</h3>
-                <p>Enter your activity counts and click Calculate Activity.</p>
-            `;
-        }
-    });
-}
-
-// -------------------------------
-// CLEAR EVENT FEED
-// -------------------------------
-
-if (clearButton && eventsElement) {
-    clearButton.addEventListener("click", () => {
-        eventCount = 0;
-        eventsElement.innerHTML = `
-            <p class="empty-events">No recent events.</p>
+    if (result) {
+        result.innerHTML = `
+            <h3>Calculation Result</h3>
+            <p>Total activity events: <strong>${total}</strong></p>
+            <p>Experimental indicator: <strong>${score}%</strong></p>
+            <p>Status: <strong>${status}</strong></p>
+            <small>This is a demonstration rule, not a validated risk prediction.</small>
         `;
+    }
+}
+
+function resetManualActivity() {
+    if (element("manualMovement")) element("manualMovement").value = 0;
+    if (element("manualDoor")) element("manualDoor").value = 0;
+    if (element("manualAppliance")) element("manualAppliance").value = 0;
+
+    if (element("manualResult")) {
+        element("manualResult").innerHTML = `
+            <h3>Calculation Result</h3>
+            <p>Enter your activity counts and click Calculate Activity.</p>
+        `;
+    }
+}
+
+// -------------------------------------
+// NAVIGATION
+// -------------------------------------
+
+function setupNavigation() {
+    document.querySelectorAll(".nav-link").forEach(link => {
+        link.addEventListener("click", () => {
+            document.querySelectorAll(".nav-link").forEach(item => {
+                item.classList.remove("active");
+            });
+
+            link.classList.add("active");
+        });
     });
 }
 
-// -------------------------------
-// START LIVE MONITORING
-// -------------------------------
+// -------------------------------------
+// START APPLICATION
+// -------------------------------------
 
-fetchLiveData();
-setInterval(fetchLiveData, POLL_MS);
+document.addEventListener("DOMContentLoaded", () => {
+    initializeActivityChart();
+    initializeDailyChart();
+    setupNavigation();
 
-console.log("ElderCare dashboard initialized.");
+    const today = new Date();
+    const localDate = new Date(
+        today.getTime() - today.getTimezoneOffset() * 60000
+    ).toISOString().slice(0, 10);
+
+    if (element("reportDate")) {
+        element("reportDate").value = localDate;
+    }
+
+    if (element("loadReport")) {
+        element("loadReport").addEventListener(
+            "click",
+            loadDailyReport
+        );
+    }
+
+    if (element("calculateManual")) {
+        element("calculateManual").addEventListener(
+            "click",
+            calculateManualActivity
+        );
+    }
+
+    if (element("resetManual")) {
+        element("resetManual").addEventListener(
+            "click",
+            resetManualActivity
+        );
+    }
+
+    if (element("clear")) {
+        element("clear").addEventListener("click", () => {
+            if (element("events")) {
+                element("events").innerHTML =
+                    '<p class="empty-events">Event feed cleared.</p>';
+            }
+            eventCount = 0;
+        });
+    }
+
+    fetchLatestData();
+    setInterval(fetchLatestData, POLL_INTERVAL);
+});
