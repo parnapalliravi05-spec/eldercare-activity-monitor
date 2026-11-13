@@ -8,7 +8,13 @@ let activityChart = null;
 let dailyChart = null;
 let previousMovement = null;
 let displayedAlerts = new Set();
+let soundedAlertIds = new Set();
 let eventCount = 0;
+
+let audioContext = null;
+let soundUnlocked = false;
+let pendingSoundAlert = false;
+
 
 // -------------------------------------
 // HTML ELEMENT HELPER
@@ -17,6 +23,119 @@ let eventCount = 0;
 function element(id) {
     return document.getElementById(id);
 }
+
+
+// -------------------------------------
+// ALERT SOUND SYSTEM
+// -------------------------------------
+
+function unlockAlertSound() {
+    if (soundUnlocked) return;
+
+    const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+        console.warn("Browser audio is not supported.");
+        return;
+    }
+
+    try {
+        if (!audioContext) {
+            audioContext = new AudioContextClass();
+        }
+
+        audioContext.resume().then(() => {
+            soundUnlocked = true;
+
+            if (pendingSoundAlert) {
+                pendingSoundAlert = false;
+                playAlertSound();
+            }
+        }).catch(error => {
+            console.warn("Unable to enable alert sound:", error);
+        });
+
+    } catch (error) {
+        console.warn("Audio initialization failed:", error);
+    }
+}
+
+
+// Enable sound after the user's first interaction
+document.addEventListener("click", unlockAlertSound, { once: true });
+document.addEventListener("keydown", unlockAlertSound, { once: true });
+document.addEventListener("touchstart", unlockAlertSound, { once: true });
+
+
+// Play three warning beeps
+function playAlertSound() {
+    if (!audioContext || !soundUnlocked) {
+        pendingSoundAlert = true;
+        return;
+    }
+
+    if (audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+
+    const startTime = audioContext.currentTime;
+
+    for (let i = 0; i < 3; i++) {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.value = 880;
+
+        const beepStart = startTime + i * 0.35;
+
+        gain.gain.setValueAtTime(0.0001, beepStart);
+        gain.gain.exponentialRampToValueAtTime(
+            0.25,
+            beepStart + 0.03
+        );
+        gain.gain.exponentialRampToValueAtTime(
+            0.0001,
+            beepStart + 0.22
+        );
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start(beepStart);
+        oscillator.stop(beepStart + 0.23);
+    }
+}
+
+
+// Sound only for inactivity warning and critical alerts
+function checkForSoundAlert(alert) {
+    const title = alert.title || "";
+    const isInactivityAlert =
+        title === "10-Minute Inactivity Alert" ||
+        title === "Prolonged Inactivity Alert";
+
+    if (!isInactivityAlert) return;
+
+    const id = alert.id || title + (alert.timestamp || "");
+
+    if (soundedAlertIds.has(id)) return;
+
+    soundedAlertIds.add(id);
+
+    if (soundedAlertIds.size > 200) {
+        soundedAlertIds.clear();
+        soundedAlertIds.add(id);
+    }
+
+    if (soundUnlocked) {
+        playAlertSound();
+    } else {
+        pendingSoundAlert = true;
+    }
+}
+
 
 // -------------------------------------
 // CONNECTION STATUS
@@ -29,24 +148,34 @@ function setConnection(connected) {
     const pir = element("pir");
 
     if (connection) {
-        connection.textContent = connected ? "● Connected" : "● Disconnected";
+        connection.textContent = connected
+            ? "● Connected"
+            : "● Disconnected";
+
         connection.className = connected
             ? "status-badge connected"
             : "status-badge disconnected";
     }
 
     if (backendText) {
-        backendText.textContent = connected ? "Connected" : "Disconnected";
+        backendText.textContent = connected
+            ? "Connected"
+            : "Disconnected";
     }
 
     if (backendDot) {
-        backendDot.className = connected ? "status-dot good" : "status-dot bad";
+        backendDot.className = connected
+            ? "status-dot good"
+            : "status-dot bad";
     }
 
     if (pir) {
-        pir.textContent = connected ? "Receiving sensor data" : "Waiting for sensor";
+        pir.textContent = connected
+            ? "Receiving sensor data"
+            : "Waiting for sensor";
     }
 }
+
 
 // -------------------------------------
 // TIME FORMAT
@@ -61,6 +190,7 @@ function formatTime(value) {
         second: "2-digit"
     });
 }
+
 
 // -------------------------------------
 // ACTIVITY CHART
@@ -102,6 +232,7 @@ function initializeActivityChart() {
     });
 }
 
+
 function updateActivityChart(movement) {
     if (!activityChart) return;
 
@@ -121,6 +252,7 @@ function updateActivityChart(movement) {
 
     activityChart.update("none");
 }
+
 
 // -------------------------------------
 // LIVE ALERT DISPLAY
@@ -154,7 +286,9 @@ function displayAlerts(alerts) {
 
         const title = escapeHTML(alert.title || "Activity Alert");
         const message = escapeHTML(alert.message || "");
-        const time = alert.timestamp ? formatTime(alert.timestamp) : "";
+        const time = alert.timestamp
+            ? formatTime(alert.timestamp)
+            : "";
 
         return `
             <div class="alert-item ${type}">
@@ -168,7 +302,6 @@ function displayAlerts(alerts) {
         `;
     }).join("");
 
-    // Add only newly received alerts to the event feed.
     alerts.forEach(alert => {
         const id = alert.id || (
             (alert.title || "") + (alert.timestamp || "")
@@ -176,15 +309,23 @@ function displayAlerts(alerts) {
 
         if (!displayedAlerts.has(id)) {
             displayedAlerts.add(id);
-            addEvent(alert.title, alert.message, alert.timestamp);
+
+            addEvent(
+                alert.title,
+                alert.message,
+                alert.timestamp
+            );
         }
+
+        // Check whether this alert needs a sound
+        checkForSoundAlert(alert);
     });
 
-    // Prevent unlimited browser memory growth.
     if (displayedAlerts.size > 500) {
         displayedAlerts.clear();
     }
 }
+
 
 // -------------------------------------
 // SAFE TEXT DISPLAY
@@ -199,6 +340,7 @@ function escapeHTML(value) {
         "'": "&#039;"
     })[character]);
 }
+
 
 // -------------------------------------
 // EVENT FEED
@@ -221,7 +363,9 @@ function addEvent(title, message, timestamp) {
     const safeTitle = escapeHTML(title);
     const safeMessage = escapeHTML(message);
     const safeTime = escapeHTML(
-        timestamp ? formatTime(timestamp) : formatTime(new Date())
+        timestamp
+            ? formatTime(timestamp)
+            : formatTime(new Date())
     );
 
     event.innerHTML = `
@@ -239,25 +383,33 @@ function addEvent(title, message, timestamp) {
     }
 }
 
+
 // -------------------------------------
 // UPDATE DASHBOARD
 // -------------------------------------
 
 function updateDashboard(data) {
     if (element("movement")) {
-        element("movement").textContent = data.movement_count ?? 0;
+        element("movement").textContent =
+            data.movement_count ?? 0;
     }
 
     if (element("risk")) {
-        element("risk").textContent = (data.risk_score ?? 0) + "%";
+        element("risk").textContent =
+            (data.risk_score ?? 0) + "%";
     }
 
     if (element("riskStatus")) {
-        element("riskStatus").textContent = data.status || "Monitoring";
+        element("riskStatus").textContent =
+            data.status || "Monitoring";
     }
 
     if (element("riskFill")) {
-        const score = Math.max(0, Math.min(100, Number(data.risk_score) || 0));
+        const score = Math.max(
+            0,
+            Math.min(100, Number(data.risk_score) || 0)
+        );
+
         element("riskFill").style.width = score + "%";
     }
 
@@ -273,13 +425,17 @@ function updateDashboard(data) {
 
     const movement = Number(data.movement_count) || 0;
 
-    if (previousMovement === null || movement !== previousMovement) {
+    if (
+        previousMovement === null ||
+        movement !== previousMovement
+    ) {
         updateActivityChart(movement);
         previousMovement = movement;
     }
 
     displayAlerts(data.alerts || []);
 }
+
 
 // -------------------------------------
 // FETCH LIVE DATA
@@ -305,6 +461,7 @@ async function fetchLatestData() {
         setConnection(false);
     }
 }
+
 
 // -------------------------------------
 // DAILY REPORT
@@ -341,6 +498,7 @@ function initializeDailyChart() {
     });
 }
 
+
 async function loadDailyReport() {
     const report = element("dailyReport");
     const dateInput = element("reportDate");
@@ -358,7 +516,8 @@ async function loadDailyReport() {
 
     try {
         const response = await fetch(
-            API_URL + "/daily-report?date=" + encodeURIComponent(date),
+            API_URL + "/daily-report?date=" +
+            encodeURIComponent(date),
             { cache: "no-store" }
         );
 
@@ -394,19 +553,24 @@ async function loadDailyReport() {
         `;
 
         if (dailyChart && data.hourly_activity) {
-            dailyChart.data.labels = Object.keys(data.hourly_activity);
+            dailyChart.data.labels =
+                Object.keys(data.hourly_activity);
+
             dailyChart.data.datasets[0].data =
                 Object.values(data.hourly_activity);
+
             dailyChart.update();
         }
 
     } catch (error) {
         console.error("Daily report error:", error);
+
         report.innerHTML = `
             <p>Unable to load the daily report. Please try again.</p>
         `;
     }
 }
+
 
 // -------------------------------------
 // MANUAL ACTIVITY CALCULATOR
@@ -454,10 +618,19 @@ function calculateManualActivity() {
     }
 }
 
+
 function resetManualActivity() {
-    if (element("manualMovement")) element("manualMovement").value = 0;
-    if (element("manualDoor")) element("manualDoor").value = 0;
-    if (element("manualAppliance")) element("manualAppliance").value = 0;
+    if (element("manualMovement")) {
+        element("manualMovement").value = 0;
+    }
+
+    if (element("manualDoor")) {
+        element("manualDoor").value = 0;
+    }
+
+    if (element("manualAppliance")) {
+        element("manualAppliance").value = 0;
+    }
 
     if (element("manualResult")) {
         element("manualResult").innerHTML = `
@@ -466,6 +639,7 @@ function resetManualActivity() {
         `;
     }
 }
+
 
 // -------------------------------------
 // NAVIGATION
@@ -483,6 +657,7 @@ function setupNavigation() {
     });
 }
 
+
 // -------------------------------------
 // START APPLICATION
 // -------------------------------------
@@ -493,8 +668,10 @@ document.addEventListener("DOMContentLoaded", () => {
     setupNavigation();
 
     const today = new Date();
+
     const localDate = new Date(
-        today.getTime() - today.getTimezoneOffset() * 60000
+        today.getTime() -
+        today.getTimezoneOffset() * 60000
     ).toISOString().slice(0, 10);
 
     if (element("reportDate")) {
@@ -528,10 +705,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 element("events").innerHTML =
                     '<p class="empty-events">Event feed cleared.</p>';
             }
+
             eventCount = 0;
         });
     }
 
     fetchLatestData();
+
     setInterval(fetchLatestData, POLL_INTERVAL);
 });
