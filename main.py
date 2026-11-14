@@ -60,13 +60,14 @@ def get_recent_events(hours=24):
 
 
 def create_movement_alert(delta, now):
-    recent_alerts.appendleft({
-        "id": now.isoformat(),
-        "type": "success",
-        "title": "Movement Detected",
-        "message": f"{delta} new movement event(s) detected by the PIR sensor.",
-        "timestamp": now.isoformat(),
-    })
+                recent_alerts.appendleft({
+                "id": "inactivity-critical-" + reference_time.isoformat(),
+                "type": "critical",
+                "title": "Prolonged Inactivity Alert",
+                "message": f"No movement detected for {int(inactive_minutes)} minutes.",
+                "timestamp": now.isoformat()
+            })
+            inactivity_alert_level = "critical"
 
 
 def generate_inactivity_alerts(now):
