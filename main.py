@@ -94,35 +94,3 @@ def generate_inactivity_alerts(now):
                 "title": "Prolonged Inactivity Alert",
                 "message": f"No movement detected for {int(inactive_minutes)} minutes.",
                 "timestamp": now.isoformat(),
-            })
-            inactivity_alert_level = "critical"
-    elif inactive_minutes >= WARNING_INACTIVITY_MINUTES:
-        if inactivity_alert_level is None:
-            recent_alerts.appendleft({
-                "id": "inactivity-warning-" + reference_time.isoformat(),
-                "type": "warning",
-                "title": "10-Minute Inactivity Alert",
-                "message": "No movement has been detected for 10 minutes. Please check the monitored activity.",
-                "timestamp": now.isoformat(),
-            })
-            inactivity_alert_level = "warning"
-
-    six_hour_events = get_recent_events(RISK_ACTIVITY_WINDOW_HOURS)
-    six_hour_movements = sum(event["movement_delta"] for event in six_hour_events)
-
-    if six_hour_movements < 3:
-        alerts.append({
-            "id": "low-activity-six-hour",
-            "type": "warning",
-            "title": "Low Activity Alert",
-            "message": "Movement activity is below the configured six-hour threshold.",
-            "timestamp": now.isoformat(),
-        })
-
-    return alerts
-
-
-# Experimental estimate only; not a medical or loneliness diagnosis.
-# Recalculated on every incoming ESP32 reading and every /latest request.
-def calculate_risk(now):
-    reference_time = last_movement_time or monitoring_start_time
